@@ -1,0 +1,22 @@
+<tool id="TieDIE" name="TieDIE" version="1.0.0">
+  <description>Connects Two Input Sets Over the Superpathway</description>
+  <command interpreter="python">
+	tiedie.py 
+		-u $up_heats 
+		-d $down_heats 
+		-n $network 
+		-k $kernel 
+		-s $size_factor 
+  </command>
+  <inputs>
+    <param name="up_heats" label="Upstream Heats File" type="data"/>
+    <param name="down_heats" label="Downstream Heats File" type="data"/>
+	<param name="network" label="Search Network (sif)" type="data"/>
+	<param name="kernel" label="Kernel" type="data"/>
+	<param name="size_factor" label="Size Selection Factor" type="text"/>
+  </inputs>
+  <outputs>
+    <data format="text" name="subnet" label="TieDIE Subnetwork Output" />
+    <data format="text" name="report" label="TieDIE Report" />
+  </outputs>
+</tool>
