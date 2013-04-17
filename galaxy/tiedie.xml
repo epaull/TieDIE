@@ -7,13 +7,15 @@
 		-n $network 
 		-k $kernel 
 		-s $size_factor 
+		$subnet
+		$report
   </command>
   <inputs>
     <param name="up_heats" label="Upstream Heats File" type="data"/>
     <param name="down_heats" label="Downstream Heats File" type="data"/>
 	<param name="network" label="Search Network (sif)" type="data"/>
 	<param name="kernel" label="Kernel" type="data"/>
-	<param name="size_factor" label="Size Selection Factor" type="text"/>
+	<param name="size_factor" label="Size Selection Factor" type="text" default="1.0" />
   </inputs>
   <outputs>
     <data format="text" name="subnet" label="TieDIE Subnetwork Output" />
