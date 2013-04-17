@@ -256,19 +256,19 @@ subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = extractSubnetwork(u
 # Generate linker stats and output
 # 
 out_degrees = getOutDegrees(subnet_soln)
-#print "Writing network node stats to "+output_folder+"/node.stats"
-#out_file = output_folder+"/node.stats"
-#out = open(out_file, 'w')
-#out.write("NODE\tCONNECTING\tMIN_HEAT\tOUT_DEGREE\n")
-#for node in subnet_soln_nodes:
-#	out_deg = out_degrees[node]
-#	linker_heat = linker_scores[node]
-#	connecting = "0" 
-#	if node not in up_heats:
-#		if down_heats is not None and node not in down_heats:
-#			connecting = "1"	
-#	out.write("\t".join([node, connecting, str(linker_heat), str(out_deg)])+"\n")
-#out.close()
+print "Writing network node stats to "+output_folder+"/node.stats"
+out_file = output_folder+"/node.stats"
+out = open(out_file, 'w')
+out.write("NODE\tCONNECTING\tMIN_HEAT\tOUT_DEGREE\n")
+for node in subnet_soln_nodes:
+	out_deg = out_degrees[node]
+	linker_heat = linker_scores[node]
+	connecting = "0" 
+	if node not in up_heats:
+		if down_heats is not None and node not in down_heats:
+			connecting = "1"	
+	out.write("\t".join([node, connecting, str(linker_heat), str(out_deg)])+"\n")
+out.close()
 
 print "Writing "+output_folder+"/tiedie.sif result "
 writeNetwork(subnet_soln, args[0])
