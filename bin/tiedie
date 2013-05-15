@@ -9,7 +9,7 @@ File with upstream heats: <gene>    <input heat (0-100)>    <sign (+/-)>")
 parser.add_option("-d","--down_heats",dest="down_heats",action="store",default=None,help="\
 File with downstream heats: <gene>    <input heat (0-100)>    <sign (+/-)>")
 parser.add_option("-k","--kernel",dest="kernel",action="store",default=None,help="\
-Pre-computed heat diffusion kernel in tab-delimited form. Should have both a header and row labels")
+Pre-computed heat diffusion kernel in tab-delimited form. Should have both a header and row labels. The program will attempt to use scipy to generate a kernel if none is supplied.")
 parser.add_option("--pcst",dest="pcst",action="store_true",default=False,help="\
 Use the Prize-Collecting Steiner Tree Formulation to Generate a Connecting Subnetwork (Bionet must be installed)")
 parser.add_option("-n","--network",dest="network",action="store",default=None,help="\
@@ -33,6 +33,10 @@ from ppr import PPrDiffuser
 from permute import NetBalancedPermuter
 from size_selector import SizeSelector
 from tiedie_util import *
+
+if opts.kernel is None:
+	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
+	from kernel_scipy import SciPYKernel
 
 # Program Constants
 SCORE_MU = 0.1
@@ -195,8 +199,12 @@ network = parseNet(opts.network)
 if opts.pagerank:
 	diffuser = PPrDiffuser(network)
 else:
-	print "Loading Heat Diffusion Kernel.."
-	diffuser = Kernel(opts.kernel)
+	if opts.kernel is not None:
+		print "Loading Heat Diffusion Kernel.."
+		diffuser = Kernel(opts.kernel)
+	else:
+		sys.stderr.write("Using SCIPY to compute the matrix exponential, t=0.1...\n")
+		diffuser = SciPYKernel(opts.network)
 
 print "Diffusing Heats..."
 up_heats_diffused = diffuser.diffuse(up_heats, reverse=False)
