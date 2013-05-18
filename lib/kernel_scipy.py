@@ -61,8 +61,20 @@ class SciPYKernel:
 		# graph laplacian
 		L = coo_matrix((data,(row, col)), shape=(num_nodes,num_nodes)).tocsc()
 		time_T = -0.1
+		self.laplacian = L
+		self.index2node = index2node
 		self.kernel = expm(time_T*L)
 		self.labels = node_order
+	
+		#self.printLaplacian()
+
+	def printLaplacian(self):
+
+		cx = self.laplacian.tocoo()
+		for i,j,v in zip(cx.row, cx.col, cx.data):
+			a = self.index2node[i]
+			b = self.index2node[j]
+			print "\t".join([a,b,str(v)])
 
 	def parseNet(self, network):
 
@@ -74,6 +86,11 @@ class SciPYKernel:
 			parts = line.rstrip().split("\t")
 			source = parts[0]
 			target = parts[2]
+
+			# if inputting a multi-graph, skip this
+			if (source, target) in edges:
+				continue
+
 			edges.add((source, target))
 			edges.add((target, source))
 			nodes.add(source)
