@@ -22,6 +22,11 @@ Either MATLAB or the python scipy module, version 0.12 or later, is
 required for diffusion kernel computation: the latter is free, though
 not as computationally efficient as the MATLAB implementation.
 
+* [python 2.7](http://www.python.org/): all modules.
+   * [scipy](http://www.scipy.org/): kernel generation
+   * [numpy](http://numpy.scipy.org/)
+* [MATLAB](http://www.mathworks.com/products/matlab/): kernel generation
+
 Installation
 -------
 
