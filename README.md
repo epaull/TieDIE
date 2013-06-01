@@ -34,7 +34,11 @@ Installation
 - Download the TieDIE repository to the desired location
 - (Optional) Pre-Generate kernel file with MATLAB (bin/makeKernel.sh)
 - Run TieDIE/bin/tiedie
-	
+
+Examples
+-------
+- **GBM.test** An example signaling network from Glioblastoma (TCGA Network, 2012) is provided, along with input heats 
+for an upstream set of genes (mutated genes) and a downstream set of nodes (transcriptional responses). 
  
 Modules
 -------
@@ -43,3 +47,5 @@ Modules
 - **makeKernel.sh** Shell script executable that calls MATLAB for diffusion kernel file generation.
 - (Auxillary) **span.R** An R-implementation of the Prize Collecting Steiner Tree network formulation, that calls 
 the BioNet package. 
+
+
