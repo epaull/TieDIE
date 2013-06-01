@@ -1,18 +1,18 @@
 TieDIE: Tied Diffusion for Subnetwork Discovery. 
 ========
 
-VERSION 
+Version 
 --------
 
 0.1
 	
-AUTHORS
+Authors
 --------
 
 Evan O. Paull, Daniel Carlin
 
 
-REQUIREMENTS
+Requirements
 --------
 
 Python 2.7 and the python numpy module are required to run the tiedie 
@@ -22,7 +22,11 @@ Either MATLAB or the python scipy module, version 0.12 or later, is
 required for diffusion kernel computation: the latter is free, though
 not as computationally efficient as the MATLAB implementation.
 
-INSTALLATION
+Installation
 -------
+
+- Install dependencies
+- Download the TieDIE repository to the desired location
+- Run TieDIE/bin/tiedie
 	
  
