@@ -32,6 +32,7 @@ Installation
 
 - Install dependencies
 - Download the TieDIE repository to the desired location
+- (Optional) Pre-Generate kernel file with MATLAB (bin/makeKernel.sh)
 - Run TieDIE/bin/tiedie
 	
  
