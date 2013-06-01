@@ -1,10 +1,10 @@
 TieDIE: Tied Diffusion for Subnetwork Discovery. 
 ========
 
-Version 
+Current Version 
 --------
 
-0.1
+1.0
 	
 Authors
 --------
