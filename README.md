@@ -36,3 +36,10 @@ Installation
 - Run TieDIE/bin/tiedie
 	
  
+Modules
+-------
+
+- **tiedie** Python executable to run the TieDIE algorithm. 
+- **makeKernel.sh** Shell script executable that calls MATLAB for diffusion kernel file generation.
+- (Auxillary) **span.R** An R-implementation of the Prize Collecting Steiner Tree network formulation, that calls 
+the BioNet package. 
