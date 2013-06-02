@@ -25,9 +25,19 @@ def parseHeats(file):
 	return (heats, signs)
 
 def edgelist2nodes(list):
+	"""
+	Input:
+		A list of edges in (source, interaction, target) string form.
+
+	Returns:
+		A set object of nodes in the input network
+
+	>>> edgelist2nodes([("A","i>","B"),("B","-a>","C")])
+	set(['A', 'C', 'B'])
+	"""
 
 	nodes = set()
-	for (source,i, target) in list:
+	for (source, i, target) in list:
 		nodes.add(source)
 		nodes.add(target)
 
@@ -88,6 +98,18 @@ def getOutDegrees(network):
 
 	Returns:
 		a hash of node out-degrees
+
+	>>> network = {}
+	>>> network['S1'] = set()
+	>>> network['S2'] = set()
+	>>> network['T1'] = set()
+	>>> network['S1'].add(('a>','T1'))
+	>>> network['S2'].add(('a>','T2'))
+	>>> network['S2'].add(('a|','T3'))
+	>>> network['T1'].add(('t|','T2'))
+	>>> getOutDegrees(network)
+	{'S2': 2, 'S1': 1, 'T2': 0, 'T3': 0, 'T1': 1}
+
 	"""
 	outDegrees = {}
 	for s in network:
@@ -205,8 +227,11 @@ def searchDFS(source, action, discovered, linker_nodes, target_set, net, gene_st
 
 def classifyState(up_signs, down_signs):
 	'''
-	encapsulates the guesses of the biological effects of
-	each events. 
+	Build a hash of putative effects of perturbations,
+	and inferred transcription activity.
+
+	>>> classifyState({'A':"+",'B':"+"}, {'B':"-",'C':"-"})
+	({'A': 1, 'C': -1, 'B': 1}, {'C': -1, 'B': -1})
 	'''
 
 	c = {}
@@ -417,6 +442,26 @@ def mapUGraphToNetwork(edge_list, network):
 
 def connectedSubnets(network, subnet_nodes):
 
+	"""
+
+	Input: 
+		A network in hash[source] = set( (interaction, target), ... ) Form
+		A set of nodes to use for edge selection
+
+	Returns: 
+		An edgelist set (source, target) 
+		where both nodes are in the subset of interest
+
+	>>> network = {}
+	>>> network['S1'] = set()
+	>>> network['S2'] = set()
+	>>> network['T1'] = set()
+	>>> network['S1'].add(('a>','T1'))
+	>>> network['S2'].add(('a>','T2'))
+	>>> network['T1'].add(('t|','T2'))
+	>>> connectedSubnets(network, set(['S1','T1','T2']))
+	set([('S1', 'T1'), ('T1', 'T2')])
+	"""
 	edgelist = set()
 
 	for s in network:
@@ -427,7 +472,11 @@ def connectedSubnets(network, subnet_nodes):
 	return edgelist
 
 def connectedNodes(network, hot_nodes):
-
+	"""
+	Call connectedSubnets to restrict to connected nodes, and return just the nodes
+	filtered in this step
+	"""
+	
 	nodes = set()
 	for (s, t) in connectedSubnets(network, hot_nodes):
 		nodes.add(s)
@@ -485,6 +534,7 @@ def runPCST(up_heats, down_heats, linker_genes, network_file):
 		tmp_act.write(node+"\t"+scores[node]+"\n")
 	tmp_act.close()	
 
+	# PCST is implemented in the BioNet package, and requires R to run. Python will call this script and collect the output
 	os.system(sys.path[0]+"/span.R --activities /tmp/tmp_act_"+pid+".tab --network "+network_file+" > /tmp/pcst_"+pid+".tab 2>/dev/null")
 
 	pcst_network = []
