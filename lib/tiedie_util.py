@@ -3,6 +3,14 @@
 import re, math, os, sys, operator, random
 
 def parseHeats(file):
+	"""
+	Parse input heats file in form:
+		<gene> <heat> <perturbation/activity sign (+/-)>
+		
+	Returns:
+		- Two hashes: one indexing by gene and storing the input heats, and one storing the input signs
+	"""
+	
 	heats = {}
 	signs = {}
 	for line in open(file, 'r'):
@@ -71,7 +79,16 @@ def classifyInteraction(i):
 		return (1, "INTERACTS")
 
 def getOutDegrees(network):
+	"""
+	Get the out-degree of each node in the network
 
+	Input:
+		network:
+			{ [source]: (interaction, target) }
+
+	Returns:
+		a hash of node out-degrees
+	"""
 	outDegrees = {}
 	for s in network:
 		outDegrees[s] = len(network[s]) 
