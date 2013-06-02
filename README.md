@@ -43,8 +43,7 @@ for an upstream set of genes (mutated genes) and a downstream set of nodes (tran
 	cd examples/GBM.test
 	make
 
- 
-Modules
+Programs
 -------
 
 - **tiedie** Python executable to run the TieDIE algorithm. 
@@ -52,4 +51,11 @@ Modules
 - (Auxillary) **span.R** An R-implementation of the Prize Collecting Steiner Tree network formulation, that calls 
 the BioNet package. 
 
-
+Folders
+------
+* bin : executables and matlab source files
+* lib : python code libraries for the tiedie executable
+* test : doctest unit tests
+* examples : GBM and BRCA inputs for demonstration purposes
+* galaxy : Galaxy web-server wrapper for tiedie to run through the web interface. 
+* pathways : the "superpathway" described in the TieDIE paper, used with the TCGA BRCA dataset
