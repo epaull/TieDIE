@@ -1,5 +1,33 @@
 #!/usr/bin/env python
 
+###
+### TieDIE: Tied Diffusion for Network Discovery
+###
+###	Version: 
+###
+###		1.0
+###
+###	Authors: 
+###
+###		Evan Paull (epaull@soe.ucsc.edu)
+###
+###	Requirements:
+###
+### 	python 2.7.X
+###		numpy 1.7+ (with pre-computed kernels)
+###		scipy 0.12+ (for on-the-fly kernel generation)
+###
+### Minimum Inputs: 
+###		
+###		- separate source/target input heat files: tab-separated, 3 columns each with <gene> <input heat> <sign (+/-)>
+###		- a search pathway in .sif format (geneA <interaction> geneB)
+###
+### Outputs:
+###
+###		Creates a directory in the current working directory, and writes all output to that
+###		Information and warnings are logged to standard error
+
+
 import os, sys
 from collections import defaultdict
 from optparse import OptionParser
@@ -9,37 +37,35 @@ File with upstream heats: <gene>    <input heat (0-100)>    <sign (+/-)>")
 parser.add_option("-d","--down_heats",dest="down_heats",action="store",default=None,help="\
 File with downstream heats: <gene>    <input heat (0-100)>    <sign (+/-)>")
 parser.add_option("-k","--kernel",dest="kernel",action="store",default=None,help="\
-Pre-computed heat diffusion kernel in tab-delimited form. Should have both a header and row labels. The program will attempt to use scipy to generate a kernel if none is supplied.")
+Pre-computed heat diffusion kernel in tab-delimited form. Should have both a header and row labels. \
+The program will attempt to use scipy to generate a kernel if none is supplied.")
 parser.add_option("--pcst",dest="pcst",action="store_true",default=False,help="\
 Use the Prize-Collecting Steiner Tree Formulation to Generate a Connecting Subnetwork (Bionet must be installed)")
 parser.add_option("-n","--network",dest="network",action="store",default=None,help="\
 .sif network file for the curated pathway to search. <source>   <(-a>,-a|,-t>,-t|,-component>)> <target>")
 parser.add_option("-s","--size",dest="size",action="store",default="1",help="\
 Network size control factor (default 1)")
-parser.add_option("-a","--alpha",dest="alpha",action="store",default=None,help="Linker Cutoff (overrides the Size factor)")
+parser.add_option("-a","--alpha",dest="alpha",action="store",default=None,help="Linker Cutoff \
+(overrides the Size factor)")
 parser.add_option("-c","--depth",dest="depth",action="store",default="3",help="\
 Search depth for causal paths (default 3)")
 parser.add_option("-p","--permute",dest="permute",action="store",default=1000,help="\
 Number of random permutations performed for significance analysis (default 1000)")
-parser.add_option("--pagerank",dest="pagerank",action="store_true",default=False,help="Use Personalized PageRank to Diffuse")
+parser.add_option("--pagerank",dest="pagerank",action="store_true",default=False,
+help="Use Personalized PageRank to Diffuse")
 parser.add_option("--all_paths",dest="all_paths",action="store_true",default=False)
-parser.add_option("--select_size",dest="size_select",action="store",default=None)
 (opts, args) = parser.parse_args()
 
-# local imports
+# local imports assume the directory structure from github . 
 sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
 from kernel import Kernel
 from ppr import PPrDiffuser
 from permute import NetBalancedPermuter
-from size_selector import SizeSelector
 from tiedie_util import *
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
 	from kernel_scipy import SciPYKernel
-
-# Program Constants
-SCORE_MU = 0.1
 
 def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control, set_alpha):
 	"""
@@ -58,30 +84,34 @@ def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffus
 			- list of nodes in that network
 	"""
 
-	# find linker cutoff
 	linker_cutoff = None
 	linker_nodes = None
 	linker_scores = None
 	alpha_score = None
-	# if explicitly set, use the supplied linker cutoff
+	# optional: if a linker cutoff is supplied, use this without performing the computation
 	if set_alpha:
 		alpha_score = None
 		linker_cutoff = float(set_alpha)
 	else:
+		# find the 'cutoff' for selecting linker genes that fall above this threshold
 		linker_cutoff, alpha_score = findLinkerCutoff(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control)
 
+	# 'linker' nodes and the scores for each, after we threshold at the cutoff
 	linker_nodes, linker_scores = filterLinkers(up_heats_diffused, down_heats_diffused, linker_cutoff)
 
 	ugraph = None
 	if opts.pcst:
+		# optional: use the Prize Collecting Steiner Tree formulation to connect the network
 		ugraph = runPCST(up_heats, down_heats, linker_nodes, opts.network)
 	else:
 		nodes = set(up_heats).union(set(down_heats)).union(set(linker_nodes))
+		# simply find connected edges with both nodes in the selected set
 		ugraph = connectedSubnets(network, nodes)
 
 	if len(ugraph) == 0:
-		print "Couldn't find any linking graph at this size setting!"
+		sys.stderr.write("Couldn't find any linking graph at this size setting!\n")
 		return (None, None, None, None)
+	# map the undirected edge list back to the directed network, which includes edge types, and directionality
 	subnet_soln = mapUGraphToNetwork(ugraph, network)
 	
 	subnet_soln_nodes = set()
@@ -95,86 +125,98 @@ def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffus
 def findConsistentPaths(up_signs, down_signs, searchNetwork, output_folder, output):
 
 	"""
+		Filter the heat-generated network by searching for all directed paths from each
+		source to each target gene. 
+
 		Input:
-			- hash with up/down signs for each upstream node
-			- hash with up/down signs for each downstream node
-			- subnetwork to search over 
+			- up_signs: hash with up/down signs for each upstream node
+			- down_signs: hash with up/down signs for each downstream node
+			- searchNetwork: heat derived subnetwork to use as the basis for the depth-first search
+			- output_folder: write output networks under this directory
 			
 		Options:
-			- output: flag to write output 
+			- output: flag to write output to the specified folder
+
+		Returns:
+
+			- TP: true positive links (count)
+			- FP: false positive links, if supplied with 'dummy' edges for the precision/recall test
+			- validated: an edge list of validated edges
+			
 
 	"""
-	# connect all sources
+	# States can be classified as either a gain or loss of function, or up/down regulated. 
+	# If a gene is in both source and target sets, the state of the source (perturbation) set
+	# takes precedence. 
 	gene_states, t_states = classifyState(up_signs, down_signs)
+	# store the set of validated edges here
 	validated = set()
 	down_set = set(down_signs.keys())
 	# if we're doing a randomized link analysis, keep track of TP and FP scores
 	TP = 0
 	FP = 0
+	# for each upstream 'perturbed' gene, do a search for possible targets, following directional links
 	for source in up_signs:
 		action = gene_states[source]
 		falsePaths = []
 		truePaths = []	
 		edges_this_source = set()
+		# perform a recursive DFS search for any of this target set, following directional links and stopping when a target is hit
+		# keep track of True/False paths--necessary if performing the precision/recall evaluation--, defined as when a path contains 
+		# one or more injected false edges. 
 		searchDFS(source, action, edges_this_source, set(), down_set, searchNetwork, gene_states, t_states, search_depth, truePaths, falsePaths, False)
 		for edge in edges_this_source:
 			validated.add(edge)
 		TP += len(truePaths)	
 		FP += len(falsePaths)	
 
-		# write it
+		# write causal networks to the output folder
 		if output:
 			out_file = output_folder+"/"+source+".cn.sif"
-			print "Writing Single Causal Neighborhood to "+out_file
+			sys.stderr.write("Writing Single Causal Neighborhood to "+out_file+"\n")
 			writeEL(edges_this_source, source, down_set, out_file)
 
 	if output:	
 		out_file = output_folder+"/tiedie.cn.sif"
-		print "Writing Full Causal Neighborhood to "+out_file
+		sys.stderr.write("Writing Full Causal Neighborhood to "+out_file+"\n")
+		# this is the union of all individual source networks
 		writeEL(validated, "ALL", down_set, out_file)
 
 	return (TP, FP, validated)
 
 def scoreSubnet(subnet_soln_nodes, up_heats, down_heats):
-	# Score Sets According to Compactness Score
+	"""
+		Score Sets According to a Compactness Score that weighs the coverage of source and target sets
+		while penalizing for the number of linker nodes needed to connected them.
+	"""
 	S = set(up_heats.keys())
 	T = set(down_heats.keys())
+	# C is the connecting set: linker genes that are in neither the source, nor target sets
 	C = subnet_soln_nodes.difference(S).difference(T)
 	U = S.union(T)
+	# record the 'captured' nodes from source and target sets, in the network solution
 	Sr = S.intersection(subnet_soln_nodes)
 	Tr = T.intersection(subnet_soln_nodes)
-	penalty = float(len(C))/len(U)
-	score = float(len(Sr))/(len(S)*2) + float(len(Tr))/(len(T)*2) - SCORE_MU*penalty
+	PENALTY_CONST = 0.1
+	# penalize the connecting gene set, as a fraction of the total network size (by # nodes)
+	penalty = (float(len(C))/len(U))*PENALTY_CONST
+	score = float(len(Sr))/(len(S)*2) + float(len(Tr))/(len(T)*2) - penalty
 
 	return score
 
-def sampleDiffuse(input_heats, input_signs, diffuser, rate, reverse):
-	"""
-		Sample without replacement at the specified rate. Use the subsampled 
-		values to diffuse and return both the subsampled set and the diffused heats
- 		from it
-	"""
-	sample_size	= int(len(input_heats)*float(rate))
-
-	subsampled_heats = {}
-	subsampled_signs = {}
-	for node in random.sample(input_heats, sample_size):
-		subsampled_heats[node] = input_heats[node]
-		subsampled_signs[node] = input_signs[node]
-
-	diffused_heats = diffuser.diffuse(subsampled_heats, reverse)
-
-	return (subsampled_heats, subsampled_signs, diffused_heats)
-
-# parse inputs, set up output folder:
+# Set the number of random permutations for the null-model test
 PERMUTE = int(opts.permute)
-opts.rate = 1.0
 
+# parse the input heats for both upstream and downstream sets, and record the signs
+# representing the putative perturbation effect, or transcriptional activity
 up_heats, up_signs = parseHeats(opts.up_heats)
 down_heats, down_signs = parseHeats(opts.down_heats)
+# Set the desired relative size of the linker set of genes to be found by the algorithm
 size_control = float(opts.size)
+# Maximum search depth for directed path (source->target) search
 search_depth = int(opts.depth)
 
+# set the output folder for the reports and networks, create the directory
 out_prefix = os.path.dirname(opts.up_heats)
 if out_prefix == "":
 	out_prefix = "."
@@ -183,8 +225,7 @@ if opts.alpha:
 	output_folder = out_prefix+"/TieDIE_RESULT_"+str(opts.alpha)
 if opts.pagerank:
 	output_folder += "_PAGERANK"
-		
-# create directory
+
 if not os.path.exists(output_folder):
 	os.mkdir(output_folder)
 
@@ -194,76 +235,36 @@ if not os.path.exists(output_folder):
 # 	page-rank diffused vectors
 #
 
-print "Parsing Network File..."
+sys.stderr.write("Parsing Network File..\n")
 network = parseNet(opts.network)
 if opts.pagerank:
+	# use PageRank to diffuse heats: create a diffuser object to perform this step
 	diffuser = PPrDiffuser(network)
 else:
 	if opts.kernel is not None:
-		print "Loading Heat Diffusion Kernel.."
+		sys.stderr.write("Loading Heat Diffusion Kernel..\n")
+		# load a heat diffusion kernel to perform diffusion
 		diffuser = Kernel(opts.kernel)
 	else:
 		sys.stderr.write("Using SCIPY to compute the matrix exponential, t=0.1...\n")
+		# No kernel supplied: use SCIPY to generate a kernel on the fly, and then use it
+		# for subsequent diffusion operations
 		diffuser = SciPYKernel(opts.network)
 
-print "Diffusing Heats..."
+sys.stderr.write("Diffusing Heats...\n")
+# Separately perform diffusion for each input set
 up_heats_diffused = diffuser.diffuse(up_heats, reverse=False)
 down_heats_diffused = diffuser.diffuse(down_heats, reverse=True)
 
-if opts.size_select:
-
-	# Search a number of network sizes to get a range with the highest significance. 
-	# Somewhat slow. 
-	search_space = []
-	start, end = opts.size_select.split(":")
-	start = int(start)
-	end = int(end)
-	for size in range(1, 20):
-		search_space.append(float(size)/20)
-	for size in range(11, 20):
-		search_space.append(float(size)/10)
-	for size in range(1, 15):
-		search_space.append(2+float(size)/5)
-	for size in range(1, 20):
-		search_space.append(5+float(size)/4)
-	# 2->5 small, 5->
-
-	sizeSelector = SizeSelector(network, up_heats, down_heats, down_heats_diffused, diffuser, PERMUTE)	
-	sizeSelector.generateBackground(search_space)
-	graph = sizeSelector.getGraph()
-
-	min = (1,0)
-	for size in search_space:
-		score, pval = graph[size]
-		if pval < min[0]:
-			min = (pval, size)
-
-	search_space = []
-	start = int(min[1])-1
-	end = int(min[1])+1
-	for size in range(start*10+1, end*10):
-		search_space.append(float(size)/10)
-
-	sizeSelector.generateBackground(search_space)
-	graph = sizeSelector.getGraph()
-	for size in search_space:
-		score, pval = graph[size]
-		if pval < min:
-			min = (pval, size)
-	
-	sys.exit(0)
-
-#
-# Extract a subnetwork solution from the diffused heats
-#
+# Extract a subnetwork solution from the diffused heats, the set of nodes found, the Relevance score for this network solution
+# and the heat scores for all linker genes
 subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control, opts.alpha)
-#print "Real RI Score:\t"+str(alpha_score)
 
 # 
 # Generate linker stats and output
 # 
 out_degrees = getOutDegrees(subnet_soln)
-print "Writing network node stats to "+output_folder+"/node.stats"
+sys.stderr.write("Writing network node stats to "+output_folder+"/node.stats\n")
 out_file = output_folder+"/node.stats"
 out = open(out_file, 'w')
 out.write("NODE\tCONNECTING\tMIN_HEAT\tOUT_DEGREE\n")
@@ -277,7 +278,7 @@ for node in subnet_soln_nodes:
 	out.write("\t".join([node, connecting, str(linker_heat), str(out_deg)])+"\n")
 out.close()
 
-print "Writing "+output_folder+"/tiedie.sif result "
+sys.stderr.write("Writing "+output_folder+"/tiedie.sif result \n")
 writeNetwork(subnet_soln, output_folder+"/tiedie.sif")
 
 # 
@@ -285,34 +286,30 @@ writeNetwork(subnet_soln, output_folder+"/tiedie.sif")
 #
 TP, FP, validated = findConsistentPaths(up_signs, down_signs, subnet_soln, output_folder, True)
 
-# Open the report file
+# Open the report file to log a summary of the results
 report_file = output_folder+"/report.txt"
 report_fh = open(report_file, 'w')
 
-# Score Sets According to Compactness Score
-print "Writing Report to "+report_file+" :compactness analysis\n"
-S = set(up_heats.keys())
-T = set(down_heats.keys())
-C = subnet_soln_nodes.difference(S).difference(T)
-U = S.union(T)
-Sr = S.intersection(subnet_soln_nodes)
-Tr = T.intersection(subnet_soln_nodes)
-report_fh.write(str(float(len(Sr))/len(S))+"\t"+"of source nodes"+str(len(Sr))+" out of "+str(len(S))+"\n")
-report_fh.write(str(float(len(Tr))/len(T))+"\t"+"of target nodes"+str(len(Tr))+" out of "+str(len(T))+"\n")
-report_fh.write("And "+str(len(C))+" connecting nodes\n")
-penalty = float(len(C))/len(U)
-score = float(len(Sr))/(len(S)*2) + float(len(Tr))/(len(T)*2) - SCORE_MU*penalty
+sys.stderr.write("Writing Report to "+report_file+" :compactness analysis\n")
+
+#Score Sets According to a Compactness Score that weighs the coverage of source and target sets
+#while penalizing for the number of linker nodes needed to connected them.
+score = scoreSubnet(subnet_soln_nodes, up_heats, down_heats)
 report_fh.write("Compactness Score:"+str(score)+"\n")
 
-print "Running permutation tests... (could take several minutes for inputs of hundreds of genes @1000 permutations)"
+sys.stderr.write("Running permutation tests... (could take several minutes for inputs of hundreds of genes @1000 permutations)\n")
+
+# Instantiate to perform random permutations of the upstream heats, using the topology of the network
+# to correct for node degree
 perObj = NetBalancedPermuter(network, up_heats)
+# Perform the number random permutations specified (default 1000)
 permutedHeats = perObj.permute(PERMUTE)
+# scores for each of the permutations
 permuted_scores = []
 for heats in permutedHeats:
-	# diffuse
+	# diffuse the permuted scores, then find the Relevance score for that permuted set 
 	diffused_heats =  diffuser.diffuse(heats)
 	cutoff, score = findLinkerCutoff(heats, down_heats, diffused_heats, down_heats_diffused, size_control)
-	#print score
 	permuted_scores.append(score)
 
 # write out the distribution for significance plot
@@ -324,6 +321,7 @@ for val in sorted(permuted_scores, reverse=True):
 	sig_fh.write(str(val)+"\n")
 sig_fh.close()
 
+# just calculate the number of permuted sets that scored better than the real input set. 
 no_gte = 0.0
 for val in sorted(permuted_scores, reverse=True):
 	if val >= alpha_score:
@@ -332,7 +330,9 @@ for val in sorted(permuted_scores, reverse=True):
 		break
 
 # Davison & Hinkley (1997): true empirical p-value is (r+1)/(n+1)
-print "Writing Report to "+report_file+" :empirical p-value..." 
+# Compare Relevance scores for the permuted samples to compute and empirical p-value for the 
+# network. Write the scores to save for plotting. 
+sys.stderr.write("Writing Report to "+report_file+" :empirical p-value...\n")
 pval = (no_gte+1)/(PERMUTE+1)
 report_fh.write("P-value: "+str(pval)+" (with "+str(PERMUTE)+" random permutations)\n")
 report_fh.close()
