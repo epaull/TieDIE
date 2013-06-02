@@ -336,3 +336,4 @@ sys.stderr.write("Writing Report to "+report_file+" :empirical p-value...\n")
 pval = (no_gte+1)/(PERMUTE+1)
 report_fh.write("P-value: "+str(pval)+" (with "+str(PERMUTE)+" random permutations)\n")
 report_fh.close()
+

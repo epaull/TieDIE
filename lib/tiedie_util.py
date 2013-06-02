@@ -26,29 +26,49 @@ def edgelist2nodes(list):
 	return nodes
 	
 def classifyInteraction(i):
-	componentRE = re.compile(".*component.*")
-	activatingRE = re.compile(".*-(\S)>.*")
-	inactivatingRE = re.compile(".*-(\S)|.*")
-	rewiredAC = re.compile(".*-REWIRED>.*")
-	rewiredIN = re.compile(".*-REWIRED|.*")
+	"""
+	
+	Returns the edge activation type (-1,0,1), and the textual description
 
+	>>> classifyInteraction("component>")
+	(0, 'component')
+	>>> classifyInteraction("-a>")
+	(1, 'a')
+	>>> classifyInteraction("-t>")
+	(1, 't')
+	>>> classifyInteraction("-t|")
+	(-1, 't')
+	>>> classifyInteraction("-a|")
+	(-1, 'a')
+	>>> classifyInteraction("HPRD>")
+	(1, 'INTERACTS')
+	>>> classifyInteraction("REWIRED>")
+	(1, 'REWIRED')
+	"""
+	componentRE = re.compile("^-?component>$")
+	activatingRE = re.compile("^-?(\S)>$")
+	inactivatingRE = re.compile("^-?(\S)\|$")
+	rewiredAC = re.compile("^-?REWIRED>$")
+	rewiredIN = re.compile("^-?REWIRED\|$")
+	
 	if componentRE.match(i):
-		return (0, "c")
+		return (0, "component")
 	elif activatingRE.match(i):
 		type = activatingRE.match(i)
 		return (1, type.group(1))
 	elif inactivatingRE.match(i):
 		type = inactivatingRE.match(i)
-		return (2, type.group(1))
+		return (-1, type.group(1))
 	elif rewiredAC.match(i):
 		type = "REWIRED"
-		return (1, type.group(1))
+		return (1, type)
 	elif rewiredIN.match(i):
 		type = "REWIRED"
-		return (2, type.group(1))
+		return (-1, type)
 	else:
-		# default to activating links for HPRD
-		return (1, "a")
+		# default to activating links for HPRD or other protein
+		# component links. These are bi-directional
+		return (1, "INTERACTS")
 
 def getOutDegrees(network):
 
@@ -507,4 +527,6 @@ def sampleHeats(heats):
 
 	return subset
 
-
+if __name__ == "__main__":
+	import doctest
+	doctest.testmod()
