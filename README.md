@@ -32,13 +32,17 @@ Installation
 
 - Install dependencies
 - Download the TieDIE repository to the desired location
-- (Optional) Pre-Generate kernel file with MATLAB (bin/makeKernel.sh)
+- (Recommended) Pre-Generate kernel file with MATLAB (bin/makeKernel.sh)
 - Run TieDIE/bin/tiedie
 
 Examples
 -------
 - **GBM.test** An example signaling network from Glioblastoma (TCGA Network, 2012) is provided, along with input heats 
-for an upstream set of genes (mutated genes) and a downstream set of nodes (transcriptional responses). 
+for an upstream set of genes (mutated genes) and a downstream set of nodes (transcriptional responses). To run:
+
+	cd examples/GBM.test
+	make
+
  
 Modules
 -------
