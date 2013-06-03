@@ -9,16 +9,29 @@ class Kernel:
     def __init__(self, kernel_files):
         """ 
             Input:
+
                 kernel_file - a tab-delimited matrix file with both a header
                 and first-row labels, in the same order. 
+
+            Returns:
+
+                Kernel object.                 
         """
 
-        # might have multiple kernels here
+        # Multiple kernels are supported. Linearity of the diffusion kernel allows 
+        # this feature.
+
+        # store kernel object
         self.kernels = {}
+        # Store the header line for each kernel: will be used for lookup
         self.labels = {}
+        # The number of rows and columns for each kernel
         self.ncols = {}
         self.nrows = {}
+        # parse each kernel file
         for kernel in kernel_files.split(":"):
+            # numpy's genfromtxt format. Relatively memory-intensive
+            # FIXME: add option for matlab .mat compressed file format
             self.kernels[kernel] = genfromtxt(kernel,delimiter="\t")[1:,1:]
             self.labels[kernel] = None
             fh = open(kernel,'r')
@@ -33,18 +46,31 @@ class Kernel:
 
     def kernelMultiplyOne(self, kernel, vector):
         """
+            Multiply the specified kernel by the supplied input heat vector. 
+
             Input:
                 vector: A hash mapping gene labels to floating point values 
+                kernel: a single index for a specific kernel 
+
+            Returns:
+                A hash of diffused heats, indexed by the same names as the
+                input vector
         """
+
+        # Have to convert to ordered array format for the input vector
         array = []
         for label in self.labels[kernel]:
+            # Input heats may not actually be in the network.
+            # Check and initialize to zero if not
             if label in vector:
                 array.append(vector[label])
             else:
                 array.append(0)
 
+        # Matrix mulitply op
         value = dot(self.kernels[kernel], array)
 
+        # Convert back to a hash and return diffused heats
         return_vec = {}
         idx = 0
         for label in self.labels[kernel]:
@@ -54,6 +80,9 @@ class Kernel:
         return return_vec
 
     def addVectors(self, vector_list):
+        """
+        Sum vectors: Add hash / float-valued vectors
+        """
         sum = {}
 
         for vec in vector_list:
@@ -68,7 +97,10 @@ class Kernel:
 
     @staticmethod
     def getAngle(v1, v2):
-
+        """
+        Inactive Module: Get the angle between two vectors in n-space. 
+        Could be used for additional null model test & distance function.
+        """
         arry1 = []
         arry2 = []
         for key in v1:
@@ -83,8 +115,18 @@ class Kernel:
         return math.acos(cos_theta)
 
     def diffuse(self, vector, reverse=False):
+        """
+        Diffuse input heats over the set of kernels, add to this object
+        
+        Input:
+            {'gene1': float(heat1)
+             'gene2' : float(heat2)
+              ...
+            }
 
-        # reverse is not used: heat diffusion is undirected
+        Returns:
+            Diffused heat vector
+        """
         return_vectors = []
         for kernel in self.kernels:
             diffused_vector = self.kernelMultiplyOne(kernel, vector)
