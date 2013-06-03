@@ -584,6 +584,20 @@ def writeEL(el, so, down_set, out_file):
 	out.write(so+"\t"+"\t".join(set2)+"\n")
 	out.close()
 
+def writeNAfile(file_name, hash_values, attr_name):
+
+	fh = None
+	try:
+		fh = open(file_name, 'w')	
+	except:
+		raise Exception("Error: couldn't open output NA file for writing:"+file_name)
+
+	fh.write(attr_name+"\n")
+	for key in hash_values:
+		fh.write(key+" = "+str(hash_values[key])+"\n")
+
+	fh.close()
+
 def sampleHeats(heats):
 
 	ss = int(len(heats)*0.8)
@@ -594,6 +608,3 @@ def sampleHeats(heats):
 
 	return subset
 
-if __name__ == "__main__":
-	import doctest
-	doctest.testmod()

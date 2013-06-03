@@ -57,5 +57,5 @@ Folders
 * lib : python code libraries for the tiedie executable
 * test : doctest unit tests
 * examples : GBM and BRCA inputs for demonstration purposes
-* galaxy : Galaxy web-server wrapper for tiedie to run through the web interface. 
+* galaxy : Galaxy web-server wrapper for tiedie to run through the web interface. (https://main.g2.bx.psu.edu/)
 * pathways : the "superpathway" described in the TieDIE paper, used with the TCGA BRCA dataset

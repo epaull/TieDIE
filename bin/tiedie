@@ -278,6 +278,9 @@ for node in subnet_soln_nodes:
 	out.write("\t".join([node, connecting, str(linker_heat), str(out_deg)])+"\n")
 out.close()
 
+# write the cytoscape output file
+writeNAfile(output_folder+"/heats.NA", linker_scores, "LinkerHeats")
+
 sys.stderr.write("Writing "+output_folder+"/tiedie.sif result \n")
 writeNetwork(subnet_soln, output_folder+"/tiedie.sif")
 

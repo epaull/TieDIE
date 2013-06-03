@@ -1,0 +1,72 @@
+%% LyX 1.6.5 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[english]{article}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\usepackage[letterpaper]{geometry}
+\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+\usepackage{amstext}
+\usepackage[authoryear]{natbib}
+
+%% Stuart Lab packages for formulas and pseudocode
+\usepackage[fleqn]{amsmath}
+\usepackage{algpseudocode}
+%\usepackage{citealp}
+
+\makeatletter
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Textclass specific LaTeX commands.
+\newcommand{\lyxaddress}[1]{
+\par {\raggedright #1
+\vspace{1.4em}
+\noindent\par}
+}
+\newenvironment{lyxlist}[1]
+{\begin{list}{}
+{\settowidth{\labelwidth}{#1}
+ \setlength{\leftmargin}{\labelwidth}
+ \addtolength{\leftmargin}{\labelsep}
+ \renewcommand{\makelabel}[1]{##1\hfil}}}
+{\end{list}}
+
+\makeatother
+
+\usepackage{babel}
+
+\begin{document}
+
+\title{TieDIE Tutorial: Version 1.0}
+
+\author{Evan Paull$^{\text{}1}$, Dan Carlin$^{\text{}1}$, 
+Joshua M. Stuart$^{\text{}1,*}$}
+
+\maketitle
+\tableofcontents
+
+\lyxaddress{1. University of California, Santa Cruz\\
+Department of Biomolecular Engineering\\
+1156 High Street, Santa Cruz, CA}
+
+
+\begin{lyxlist}{00.00.0000}
+\item [{Subject~categories:}] Systems Biology, Biological Networks, Search Algorithms, Drug Target Discovery
+\item [{Keywords:}] drug target, pagerank, networks
+\end{lyxlist}
+\newpage{}
+
+\section*{Overview}
+
+\paragraph{}
+
+\newpage{}
+
+
+\section*{GBM Test Example}
+
+\section*{Results}
+
+\cite{TCGA08}
+
+\bibliographystyle{plain}
+\bibliography{Tutorial}
+
+\end{document}
