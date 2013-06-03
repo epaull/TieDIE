@@ -121,6 +121,13 @@ def getOutDegrees(network):
 	return outDegrees
 	
 def edges2degrees(edges):
+	"""
+	Takes simple edges in (source, target) format, and returns a hash of the 
+	total degree of each node.
+
+	>>> edges2degrees([("A","B"),("B","C")])
+	{'A': 1, 'C': 1, 'B': 2}
+	"""
 
 	nodes = {}
 	for (s,t) in edges:
@@ -256,7 +263,19 @@ def classifyState(up_signs, down_signs):
 	
 # build an index, source to targets fro the directed graph
 def parseNet(network):
+	"""
+	Build a directed network from a .sif file. 
+	
+	Inputs:
+		A network in .sif format, tab-separated (<source> <interaction> <target>)
 
+	Returns
+		A network in hash key format, i.e. convert two lines of a file:
+			<source>	<interaction1>	<target1>
+			<source>	<interaction2>	<target2>
+		To:	
+			{'source': set( (interaction, target1), (interaction, target2) )
+	"""
 	net = {}
 	for line in open(network, 'r'):
 
@@ -264,11 +283,6 @@ def parseNet(network):
 		source = parts[0]
 		interaction = parts[1]
 		target = parts[2]
-
-		(i,t) = classifyInteraction(interaction)
-		# skip component links
-		#if i == 0:
-		#	continue
 
 		if source not in net:
 			net[source] = set()
@@ -278,8 +292,23 @@ def parseNet(network):
 	return net
 
 def findLinkerCutoff(source_set, target_set, up_heat_diffused, down_heat_diffused, size):
+	"""
+	For a given set of source, target, and diffused heats for each, find a threshold value
+	that yeilds a "linker" set of the given size (relative to the input set size). 
 
+	Returns:
+		The cutoff/threshold to use, and the Relevance Score at that cutoff
+
+	>>> findLinkerCutoff( set(["A", "B"]), set(["X", "Y"]), {"A":1.0, "B":1.1, "C":0.5, "D":0.4}, {"X":2.0, "Y":2.1, "C":0.7, "D":0.5}, 0.2)
+	(0.4999, 0.16666666666666666)
+	>>> findLinkerCutoff( set(["A", "B"]), set(["X", "Y"]), {"A":1.0, "B":1.1, "C":0.5, "D":0.4}, {"X":2.0, "Y":2.1, "C":0.7, "D":0.5}, 1.0)
+	(0, 0)
+	>>> findLinkerCutoff( set(["A", "B"]), set(["X", "Y"]), {"A":1.0, "B":1.1, "C":0.5, "D":0.4}, {"X":2.0, "Y":2.1, "C":0.7, "D":0.5}, 0.0)
+	(1000000, 0)
+
+	"""
 	if down_heat_diffused is None:
+		# diffusing from a single source (i.e. not TieDIE but the HotNet algorithm, for comparison)
 		cutoff, score = findLinkerCutoffSingle(source_set, up_heat_diffused, size)		
 	else:
 		try:
@@ -290,6 +319,10 @@ def findLinkerCutoff(source_set, target_set, up_heat_diffused, down_heat_diffuse
 	return (cutoff, score)
 
 def findLinkerCutoffSingle(source_set, up_heat_diffused, size):
+	"""
+	If diffusing from a single source (i.e. not TieDIE but the HotNet algorithm, the implementation is trivial
+	"""
+
 
 	source_set = set(source_set)
 	up_sorted = sorted(up_heat_diffused, key=up_heat_diffused.get, reverse=True)
@@ -330,10 +363,11 @@ def findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_di
 	EPSILON = 0.0001
 
 	f, min_heats = filterLinkers(up_heat_diffused,down_heat_diffused,1)
-	# at a cutoff just below, we'll get the gene 
+	# Iterate through the reverse-sorted list of heats. Stop when the exclusive set of nodes is below the desired size
 	for cutoff in [h-EPSILON for (l,h) in sorted(min_heats.iteritems(), key=operator.itemgetter(1), reverse=True)]:
 		score, size_frac = scoreLinkers(up_heat_diffused, up_sorted, down_heat_diffused, down_sorted, source_set, target_set, cutoff, size)
 
+		# reached the desired size: return the score & cutoff
 		if size_frac > 1:
 			return (cutoff, score)
 
