@@ -184,7 +184,7 @@ def findConsistentPaths(up_signs, down_signs, searchNetwork, output_folder, outp
 
 	return (TP, FP, validated)
 
-def scoreSubnet(subnet_soln_nodes, up_heats, down_heats):
+def scoreSubnet(subnet_soln_nodes, up_heats, down_heats, report_fh):
 	"""
 		Score Sets According to a Compactness Score that weighs the coverage of source and target sets
 		while penalizing for the number of linker nodes needed to connected them.
@@ -201,6 +201,11 @@ def scoreSubnet(subnet_soln_nodes, up_heats, down_heats):
 	# penalize the connecting gene set, as a fraction of the total network size (by # nodes)
 	penalty = (float(len(C))/len(U))*PENALTY_CONST
 	score = float(len(Sr))/(len(S)*2) + float(len(Tr))/(len(T)*2) - penalty
+
+	# output to report file
+	report_fh.write(str(float(len(Sr))/len(S))+"\t"+"of source nodes"+str(len(Sr))+" out of "+str(len(S))+"\n")
+	report_fh.write(str(float(len(Tr))/len(T))+"\t"+"of target nodes"+str(len(Tr))+" out of "+str(len(T))+"\n")
+	report_fh.write("And "+str(len(C))+" connecting nodes\n")
 
 	return score
 
@@ -297,7 +302,7 @@ sys.stderr.write("Writing Report to "+report_file+" :compactness analysis\n")
 
 #Score Sets According to a Compactness Score that weighs the coverage of source and target sets
 #while penalizing for the number of linker nodes needed to connected them.
-score = scoreSubnet(subnet_soln_nodes, up_heats, down_heats)
+score = scoreSubnet(subnet_soln_nodes, up_heats, down_heats, report_fh)
 report_fh.write("Compactness Score:"+str(score)+"\n")
 
 sys.stderr.write("Running permutation tests... (could take several minutes for inputs of hundreds of genes @1000 permutations)\n")

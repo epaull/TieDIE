@@ -1,72 +1,99 @@
-%% LyX 1.6.5 created this file.  For more info, see http://www.lyx.org/.
-%% Do not edit unless you really know what you are doing.
-\documentclass[english]{article}
-\usepackage[T1]{fontenc}
-\usepackage[latin9]{inputenc}
-\usepackage[letterpaper]{geometry}
-\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
-\usepackage{amstext}
-\usepackage[authoryear]{natbib}
-
-%% Stuart Lab packages for formulas and pseudocode
+\documentclass[11pt]{report}
+\bibliographystyle{plain}
+\usepackage{fullpage}
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{url}
+\setlength\parindent{0pt}
+\usepackage{setspace}
 \usepackage[fleqn]{amsmath}
-\usepackage{algpseudocode}
-%\usepackage{citealp}
+\usepackage{amsfonts}
+\usepackage{wrapfig}
+\doublespacing
+\setcounter{tocdepth}{4}
 
 \makeatletter
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Textclass specific LaTeX commands.
-\newcommand{\lyxaddress}[1]{
-\par {\raggedright #1
-\vspace{1.4em}
-\noindent\par}
-}
-\newenvironment{lyxlist}[1]
-{\begin{list}{}
-{\settowidth{\labelwidth}{#1}
- \setlength{\leftmargin}{\labelwidth}
- \addtolength{\leftmargin}{\labelsep}
- \renewcommand{\makelabel}[1]{##1\hfil}}}
-{\end{list}}
-
+\def\@maketitle{%
+  \newpage
+  \begin{center}%
+  \let \footnote \thanks
+    {\LARGE \@title \par}%
+    \vskip 0.5em%
+    {\large
+      \lineskip .5em%
+      \begin{tabular}[t]{c}%
+        \@author
+      \end{tabular}\par}%
+    \vskip 0.5em%
+    {\large \@date}%
+  \end{center}%
+  \par
+  \vskip 1.0em}
 \makeatother
 
-\usepackage{babel}
+
+\author{Evan Paull}
+\title{TieDIE Tutorial \\ Version 1.0}
+\date{\today}
 
 \begin{document}
-
-\title{TieDIE Tutorial: Version 1.0}
-
-\author{Evan Paull$^{\text{}1}$, Dan Carlin$^{\text{}1}$, 
-Joshua M. Stuart$^{\text{}1,*}$}
-
 \maketitle
-\tableofcontents
 
-\lyxaddress{1. University of California, Santa Cruz\\
-Department of Biomolecular Engineering\\
-1156 High Street, Santa Cruz, CA}
+\singlespace
 
+\chapter*{Introduction}
 
-\begin{lyxlist}{00.00.0000}
-\item [{Subject~categories:}] Systems Biology, Biological Networks, Search Algorithms, Drug Target Discovery
-\item [{Keywords:}] drug target, pagerank, networks
-\end{lyxlist}
-\newpage{}
+\noindent TieDIE is an algorithm that finds subnetworks connecting genomic perturbations to transcriptional changes in 
+large gene interaction networks. To do this, the algorithm generates a `diffusion" kernel describing
+the flow of information in the master network, using code written in SciPy (\url{http://www.scipy.org/}) or 
+ MATLAB (\url{http://www.mathworks.com/products/matlab/}). The computation of the diffusion kernel is computationally
+intensive--particularly for a large pathway--but, once computed, the kernel can be saved to a file and re-used
+when running the TieDIE algorithm on the same master pathway. It is recommended that kernels for large networks
+be generated using MATLAB, which is considerably faster and more memory-efficient, but a free SciPy implemention is 
+provided for those without a MATLAB license. The entire program is written in python 2.7.X and requires the numpy-1.7+
+package to be installed before running. TieDIE should run on any UNIX system, and has been tested on Linux and MacOS, at this 
+point. Windows compatability is not supported at this point. 
 
-\section*{Overview}
+\chapter*{GBM Test Signaling Pathway Example}
 
-\paragraph{}
+\noindent An example network and input is shown under "examples/GBM.test". Three input files are in this directory: 
 
-\newpage{}
+	\begin{itemize}
+	\item pathway.sif: A signaling pathway extracted from the 2008 TCGA GBM Nature paper supplement \cite{TCGA08}). 
+	\item upstream.input: Input heats for the `upstream" set of genes, weighted by frequency of mutation or amplification.
+	\item downstream.input: Input heats for the `downstream" set of transcriptional responses. 
+	\end{itemize}
 
+\noindent To run the test, change directory to this folder and type `make". The program should run in a few seconds and report 
+to stderr, a subdirectory with the output will be created. Important output files are:
 
-\section*{GBM Test Example}
+	\begin{itemize}
+	\item report.txt: Network statistics and a summary report for the TieDIE subnetwork. Also includes the results of the 
+	permutation test. 
+	\item tiedie.sif: Connecting TieDIE subnetwork.
+	\item tiedie.cn.sif: Connecting subnetwork after filtering for logically consistent paths. 
+	\item heats.NA: Node-attribute file formatted for Cytoscape input (visualization). 
+	\end{itemize}
 
-\section*{Results}
+\noindent There are many software packages available for network visualization, but we've found the Cytoscape package \cite{Cytoscape03} to be well suited for network visualization. The TieDIE output network (tiedie.sif) can be directly imported to cytoscape 2.8 or later, and the node attribute file (heats.NA) along with the supplied properties file (vizmap.props) can be used to color nodes by linker heat, as shown in the figure below.
 
-\cite{TCGA08}
+\begin{figure}[h]
+    \includegraphics[scale=0.35]{files/tiedie_example.eps}
+	\caption{An small network example: sources are colored in blue, targets are red. Nodes and edges captured in the TieDIE Solution are outlined in green.}
+    \label{fig:toy_network}
+\end{figure}
 
-\bibliographystyle{plain}
+\clearpage
+
+More detailed visualizations can also be performed in Cytoscape: for example, nodes can be colored or shaped based on source or
+target node status, and nodes/edges can be highlighted, as shown in the visualization below. 
+
+\begin{figure}[h]
+    \includegraphics[scale=0.7]{files/toy_network.eps}
+	\caption{An small network example: sources are colored in blue, targets are red. Nodes and edges captured in the TieDIE Solution are outlined in green.}
+    \label{fig:toy_network}
+\end{figure}
+
 \bibliography{Tutorial}
 
 \end{document}
