@@ -14,6 +14,10 @@ class SciPYKernel:
 			Input:
 				kernel_file - a tab-delimited matrix file with both a header
 				and first-row labels, in the same order. 
+
+
+			This class has some redundancy between the Kernel class. It may be restructured to 
+			follow some inheritance strategy in the future. 
 		"""
 
 		# might have multiple kernels here
@@ -58,11 +62,15 @@ class SciPYKernel:
 				# -1 for laplacian edges
 				data.insert(len(data), -1)
 
-		# graph laplacian
+		# Build the graph laplacian: the CSC matrix provides a sparse matrix format
+		# that can be exponentiated efficiently
 		L = coo_matrix((data,(row, col)), shape=(num_nodes,num_nodes)).tocsc()
 		time_T = -0.1
 		self.laplacian = L
 		self.index2node = index2node
+		# this is the matrix exponentiation calculation. 
+		# Uses the Pade approximiation for accurate approximation. Computationally expensive.
+		# O(n^2), n= # of features, in memory as well. 
 		self.kernel = expm(time_T*L)
 		self.labels = node_order
 	
