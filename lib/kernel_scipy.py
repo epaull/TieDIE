@@ -10,18 +10,23 @@ from scipy.sparse.linalg import expm
 class SciPYKernel:
 
 	def __init__(self, network_file):
-		""" 
-			Input:
-				kernel_file - a tab-delimited matrix file with both a header
-				and first-row labels, in the same order. 
-		"""
+        """ 
+            Input:
 
-		# might have multiple kernels here
+                network_file - a tab-delimited file in .sif network format:
+				<source> <interaction> <target>
+
+            Returns:
+
+                Kernel object.                 
+        """
+
 		self.labels = {}
+        # The number of rows and columns for each kernel
 		self.ncols = {}
 		self.nrows = {}
 
-		# parse the network, build the graph laplacian
+		# parse the network, build indexes
 		edges, nodes, node_out_degrees = self.parseNet(network_file)
 		num_nodes = len(nodes)
 		node_order = list(nodes)
@@ -32,20 +37,27 @@ class SciPYKernel:
 			node2index[node_order[i]] = i
 	
 		# construct the diagonals
+		# SCIPY uses row and column indexes to build the matrix
+		# row and columns are just indexes: the data column stores 
+		# the actual entries of the matrix
 		row = array('i')
 		col = array('i')
 		data = array('f')
+		# build the diagonals, including the out-degree 
 		for i in range(0, num_nodes):
 			# diag entries: out degree
 			degree = 0 
 			if index2node[i] in node_out_degrees:
 				degree = node_out_degrees[index2node[i]]	
 			# append to the end
+			# array object: first argument is the index, the second is the data value
+			# append the out-degree to the data array
 			data.insert(len(data), degree)	
+			# build the diagonals
 			row.insert(len(row), i)	
 			col.insert(len(col), i)	
 
-		# add edges
+		# add off-diagonal edges 
 		for i in range(0, num_nodes):
 			for j in range(0, num_nodes):
 				if i == j:
@@ -55,21 +67,24 @@ class SciPYKernel:
 				# append index to i-th row, j-th column
 				row.insert(len(row), i)
 				col.insert(len(col), j)
-				# -1 for laplacian edges
+				# -1 for laplacian: i.e. the negative of the adjacency matrix 
 				data.insert(len(data), -1)
 
-		# graph laplacian
+		# graph laplacian: convert to sparse CSC format, required for matrix exponentiation
 		L = coo_matrix((data,(row, col)), shape=(num_nodes,num_nodes)).tocsc()
 		time_T = -0.1
 		self.laplacian = L
 		self.index2node = index2node
+		# exponentiate
 		self.kernel = expm(time_T*L)
 		self.labels = node_order
 	
 		#self.printLaplacian()
 
 	def printLaplacian(self):
-
+		"""
+		Debug function
+		"""
 		cx = self.laplacian.tocoo()
 		for i,j,v in zip(cx.row, cx.col, cx.data):
 			a = self.index2node[i]
@@ -77,7 +92,11 @@ class SciPYKernel:
 			print "\t".join([a,b,str(v)])
 
 	def parseNet(self, network):
-
+		"""
+		Parse .sif network, using just the first and third columns
+		to build an undirected graph. Store the node out-degrees
+		in an index while we're at it. 
+		"""
 		edges = set()
 		nodes = set()	
 		degrees = {}
@@ -87,7 +106,7 @@ class SciPYKernel:
 			source = parts[0]
 			target = parts[2]
 
-			# if inputting a multi-graph, skip this
+			# if inputing a multi-graph, skip this
 			if (source, target) in edges:
 				continue
 
@@ -108,14 +127,22 @@ class SciPYKernel:
 
 
 	def kernelMultiplyOne(self, vector):
-		"""
-			Input:
-				vector: A hash mapping gene labels to floating point values 
-		"""
+        """
+            Multiply the specified kernel by the supplied input heat vector. 
+
+            Input:
+                vector: A hash mapping gene labels to floating point values 
+                kernel: a single index for a specific kernel 
+
+            Returns:
+                A hash of diffused heats, indexed by the same names as the
+                input vector
+        """
+        # Have to convert to ordered array format for the input vector
 		array = []
-		# loop over gene names in the network kernel: add the starting value if 
-		# it's present in the supplied input vector
 		for label in self.labels:
+            # Input heats may not actually be in the network.
+            # Check and initialize to zero if not
 			if label in vector:
 				array.append(vector[label])
 			else:
@@ -124,6 +151,7 @@ class SciPYKernel:
 		# take the dot product
 		value = self.kernel*array
 
+        # Convert back to a hash and return diffused heats
 		return_vec = {}
 		idx = 0
 		for label in self.labels:
@@ -132,25 +160,20 @@ class SciPYKernel:
 
 		return return_vec
 
-	@staticmethod
-	def getAngle(v1, v2):
-
-		arry1 = []
-		arry2 = []
-		for key in v1:
-			arry1.append(float(v1[key]))
-			arry2.append(float(v2[key]))
-
-		mag_1 = math.sqrt(dot(arry1,arry1))
-		mag_2 = math.sqrt(dot(arry2,arry2))
-
-		cos_theta = dot(arry1,arry2)/(mag_1*mag_2)
-
-		return math.acos(cos_theta)
-
 	def diffuse(self, vector, reverse=False):
+        """
+        Diffuse input heats over the set of kernels, add to this object
+        
+        Input:
+            {'gene1': float(heat1)
+             'gene2' : float(heat2)
+              ...
+            }
 
-		# reverse is not used: heat diffusion is undirected
+        Returns:
+            Diffused heat vector
+        """
+
 		diffused_vector = self.kernelMultiplyOne(vector)
 
 		return diffused_vector

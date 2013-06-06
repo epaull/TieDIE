@@ -13,7 +13,13 @@ def parseHeats(file):
 	
 	heats = {}
 	signs = {}
-	for line in open(file, 'r'):
+	fh = None
+	try:
+		fh = open(file, 'r')
+	except:
+		raise Exception("Error: can't open file: "+file)
+
+	for line in fh:
 		parts = line.rstrip().split("\t")
 		if len(parts) > 2:
 			prot, heat, sign = line.rstrip().split("\t")
@@ -22,6 +28,7 @@ def parseHeats(file):
 		else:
 			heats[parts[0]] = float(parts[1])
 
+	fh.close()
 	return (heats, signs)
 
 def edgelist2nodes(list):
@@ -162,7 +169,23 @@ def isRewired(i):
 def searchDFS(source, action, discovered, linker_nodes, target_set, net, gene_states, transcriptional_signs, depth, truePaths, falsePaths, falsePathStatus):
 	'''
 	Perform a depth-first search by following directional links 
-	until we hit another source. Validate link interactions along the way
+	until we hit another source. Validate link interactions along the way. 
+	Recursive calls. 
+
+	Input:
+		source: source node by name
+		action: +1/-1 binary action
+		discovered: store validated 'discovered' paths
+		linker_nodes: build the list of linker nodes as we recurse through the function. Add them to validation
+		list if they lead to a known target
+		net: network in hash-format {'source':(interaction, target), ...}
+		gene_states: hash of 'action' states for each gene in the network
+		transcriptional_signs: equivalent to 'gene_states' for transcriptionally active nodes
+		depth: level of recursion (stop if it hits zero)
+		...additional: counts for real/false paths if using the REWIRED link test
+
+	Returns:
+		None
 	'''
 
 	if depth == 0:
@@ -525,6 +548,8 @@ def runPCST(up_heats, down_heats, linker_genes, network_file):
 	
 	# convert up/down heats to p-values	
 	# find the maximum heat for any value
+	# the BioNet package requires p-values for an input, so we have to 'fake' these
+	# here, converting them from heats. 
 	s_up = sorted([v for k, v in up_heats.iteritems()], reverse=True)
 	s_down = sorted([v for k, v in down_heats.iteritems()], reverse=True)
 
@@ -560,7 +585,6 @@ def runPCST(up_heats, down_heats, linker_genes, network_file):
 	for node in linker_genes:
 		scores[node] = "1e-10"	
 
-
 	pid = str(os.geteuid())
 
 	tmp_act = open("/tmp/tmp_act_"+pid+".tab",'w')
@@ -593,7 +617,10 @@ def writeNetwork(net, out_file):
 	out.close()
 
 def randomSubnet(network, num_sources):
-
+	"""
+	Take a random sample of nodes, of the specified size
+	from the supplied network
+	"""
 	sub = {}
 	for source in random.sample(network, num_sources):
 		sub[source] = network[source]
@@ -619,7 +646,10 @@ def writeEL(el, so, down_set, out_file):
 	out.close()
 
 def writeNAfile(file_name, hash_values, attr_name):
-
+	"""
+	Write out a node-attribute file. Include the header 
+	attr_name, and use the supplied hash values. 
+	"""
 	fh = None
 	try:
 		fh = open(file_name, 'w')	
@@ -628,6 +658,12 @@ def writeNAfile(file_name, hash_values, attr_name):
 
 	fh.write(attr_name+"\n")
 	for key in hash_values:
+		# check data type: hash values should be numbers for .NA file
+		try:
+			float(hash_values[key]
+		except:
+			raise Exception("Error: bad input value")
+			
 		fh.write(key+" = "+str(hash_values[key])+"\n")
 
 	fh.close()
