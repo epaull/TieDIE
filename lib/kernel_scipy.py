@@ -70,12 +70,15 @@ class SciPYKernel:
 				# -1 for laplacian: i.e. the negative of the adjacency matrix 
 				data.insert(len(data), -1)
 
-		# graph laplacian: convert to sparse CSC format, required for matrix exponentiation
+		# Build the graph laplacian: the CSC matrix provides a sparse matrix format
+		# that can be exponentiated efficiently
 		L = coo_matrix((data,(row, col)), shape=(num_nodes,num_nodes)).tocsc()
 		time_T = -0.1
 		self.laplacian = L
 		self.index2node = index2node
-		# exponentiate
+		# this is the matrix exponentiation calculation. 
+		# Uses the Pade approximiation for accurate approximation. Computationally expensive.
+		# O(n^2), n= # of features, in memory as well. 
 		self.kernel = expm(time_T*L)
 		self.labels = node_order
 	
