@@ -10,19 +10,20 @@ from scipy.sparse.linalg import expm
 class SciPYKernel:
 
 	def __init__(self, network_file):
-        """ 
-            Input:
+		""" 
+		Input:
 
-                network_file - a tab-delimited file in .sif network format:
-				<source> <interaction> <target>
+			network_file - a tab-delimited file in .sif network format:
+			<source> <interaction> <target>
 
-            Returns:
+		Returns:
 
-                Kernel object.                 
-        """
+			Kernel object.				 
+
+		"""
 
 		self.labels = {}
-        # The number of rows and columns for each kernel
+		# The number of rows and columns for each kernel
 		self.ncols = {}
 		self.nrows = {}
 
@@ -130,22 +131,22 @@ class SciPYKernel:
 
 
 	def kernelMultiplyOne(self, vector):
-        """
-            Multiply the specified kernel by the supplied input heat vector. 
+		"""
+			Multiply the specified kernel by the supplied input heat vector. 
 
-            Input:
-                vector: A hash mapping gene labels to floating point values 
-                kernel: a single index for a specific kernel 
+			Input:
+				vector: A hash mapping gene labels to floating point values 
+				kernel: a single index for a specific kernel 
 
-            Returns:
-                A hash of diffused heats, indexed by the same names as the
-                input vector
-        """
-        # Have to convert to ordered array format for the input vector
+			Returns:
+				A hash of diffused heats, indexed by the same names as the
+				input vector
+		"""
+		# Have to convert to ordered array format for the input vector
 		array = []
 		for label in self.labels:
-            # Input heats may not actually be in the network.
-            # Check and initialize to zero if not
+			# Input heats may not actually be in the network.
+			# Check and initialize to zero if not
 			if label in vector:
 				array.append(vector[label])
 			else:
@@ -154,7 +155,7 @@ class SciPYKernel:
 		# take the dot product
 		value = self.kernel*array
 
-        # Convert back to a hash and return diffused heats
+		# Convert back to a hash and return diffused heats
 		return_vec = {}
 		idx = 0
 		for label in self.labels:
@@ -164,18 +165,18 @@ class SciPYKernel:
 		return return_vec
 
 	def diffuse(self, vector, reverse=False):
-        """
-        Diffuse input heats over the set of kernels, add to this object
-        
-        Input:
-            {'gene1': float(heat1)
-             'gene2' : float(heat2)
-              ...
-            }
+		"""
+		Diffuse input heats over the set of kernels, add to this object
+		
+		Input:
+			{'gene1': float(heat1)
+			 'gene2' : float(heat2)
+			  ...
+			}
 
-        Returns:
-            Diffused heat vector
-        """
+		Returns:
+			Diffused heat vector
+		"""
 
 		diffused_vector = self.kernelMultiplyOne(vector)
 

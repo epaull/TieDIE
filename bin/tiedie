@@ -32,24 +32,24 @@ import os, sys
 from collections import defaultdict
 from optparse import OptionParser
 parser = OptionParser()
-parser.add_option("-u","--up_heats",dest="up_heats",action="store",default=None,help="\
+parser.add_option("-u","--up_heats",dest="up_heats",action="store",type="string",default=None,help="\
 File with upstream heats: <gene>    <input heat (0-100)>    <sign (+/-)>")
-parser.add_option("-d","--down_heats",dest="down_heats",action="store",default=None,help="\
+parser.add_option("-d","--down_heats",dest="down_heats",action="store",type="string",default=None,help="\
 File with downstream heats: <gene>    <input heat (0-100)>    <sign (+/-)>")
-parser.add_option("-k","--kernel",dest="kernel",action="store",default=None,help="\
+parser.add_option("-k","--kernel",dest="kernel",action="store",type="string",default=None,help="\
 Pre-computed heat diffusion kernel in tab-delimited form. Should have both a header and row labels. \
 The program will attempt to use scipy to generate a kernel if none is supplied.")
 parser.add_option("--pcst",dest="pcst",action="store_true",default=False,help="\
 Use the Prize-Collecting Steiner Tree Formulation to Generate a Connecting Subnetwork (Bionet must be installed)")
 parser.add_option("-n","--network",dest="network",action="store",default=None,help="\
 .sif network file for the curated pathway to search. <source>   <(-a>,-a|,-t>,-t|,-component>)> <target>")
-parser.add_option("-s","--size",dest="size",action="store",default="1",help="\
+parser.add_option("-s","--size",dest="size",action="store",default=1,type="float",help="\
 Network size control factor (default 1)")
 parser.add_option("-a","--alpha",dest="alpha",action="store",default=None,help="Linker Cutoff \
 (overrides the Size factor)")
-parser.add_option("-c","--depth",dest="depth",action="store",default="3",help="\
+parser.add_option("-c","--depth",dest="depth",action="store",default=3,type="int",help="\
 Search depth for causal paths (default 3)")
-parser.add_option("-p","--permute",dest="permute",action="store",default=1000,help="\
+parser.add_option("-p","--permute",dest="permute",action="store",default=1000,type="int",help="\
 Number of random permutations performed for significance analysis (default 1000)")
 parser.add_option("--pagerank",dest="pagerank",action="store_true",default=False,
 help="Use Personalized PageRank to Diffuse")
@@ -210,12 +210,21 @@ def scoreSubnet(subnet_soln_nodes, up_heats, down_heats, report_fh):
 	return score
 
 # Set the number of random permutations for the null-model test
-PERMUTE = int(opts.permute)
+PERMUTE = None
+try:
+	PERMUTE = int(opts.permute)
+except:
+	raise Exception("Error: bad input format option: --permute")
+
+# parse network file: use for input validation if heat nodes are not in network
+sys.stderr.write("Parsing Network File..\n")
+network = parseNet(opts.network)
+network_nodes = getNetworkNodes(network)
 
 # parse the input heats for both upstream and downstream sets, and record the signs
 # representing the putative perturbation effect, or transcriptional activity
-up_heats, up_signs = parseHeats(opts.up_heats)
-down_heats, down_signs = parseHeats(opts.down_heats)
+up_heats, up_signs = parseHeats(opts.up_heats, network_nodes)
+down_heats, down_signs = parseHeats(opts.down_heats, network_nodes)
 # Set the desired relative size of the linker set of genes to be found by the algorithm
 size_control = float(opts.size)
 # Maximum search depth for directed path (source->target) search
@@ -225,7 +234,7 @@ search_depth = int(opts.depth)
 out_prefix = os.path.dirname(opts.up_heats)
 if out_prefix == "":
 	out_prefix = "."
-output_folder = out_prefix+"/TieDIE_RESULT_size="+opts.size+"_depth="+opts.depth
+output_folder = out_prefix+"/TieDIE_RESULT_size="+str(opts.size)+"_depth="+str(opts.depth)
 if opts.alpha:
 	output_folder = out_prefix+"/TieDIE_RESULT_"+str(opts.alpha)
 if opts.pagerank:
@@ -240,8 +249,6 @@ if not os.path.exists(output_folder):
 # 	page-rank diffused vectors
 #
 
-sys.stderr.write("Parsing Network File..\n")
-network = parseNet(opts.network)
 if opts.pagerank:
 	# use PageRank to diffuse heats: create a diffuser object to perform this step
 	diffuser = PPrDiffuser(network)

@@ -2,7 +2,7 @@
 
 import re, math, os, sys, operator, random
 
-def parseHeats(file):
+def parseHeats(file, network_nodes=None):
 	"""
 	Parse input heats file in form:
 		<gene> <heat> <perturbation/activity sign (+/-)>
@@ -19,14 +19,32 @@ def parseHeats(file):
 	except:
 		raise Exception("Error: can't open file: "+file)
 
+	lineno = 1
 	for line in fh:
 		parts = line.rstrip().split("\t")
 		if len(parts) > 2:
 			prot, heat, sign = line.rstrip().split("\t")
-			heats[prot] = float(heat)
+
+			# provide a warning if node not in the network
+			if network_nodes and prot not in network_nodes:
+				sys.stderr.write("Warning: input heat node "+prot+" not in the network and will be ignored...\n")
+				continue
+
+			# input validation for heat values
+			try:
+				heats[prot] = float(heat)
+			except:
+				raise Exception("Error: non float heat value on line "+str(lineno)+" gene "+prot)
+
+			# input validation for input signs
+			if sign != "+" and sign != "-":
+				raise Exception("Error: invalid value for heat sign on line "+str(lineno)+sign)
+
 			signs[prot] = sign
 		else:
 			heats[parts[0]] = float(parts[1])
+
+		lineno += 1
 
 	fh.close()
 	return (heats, signs)
@@ -660,7 +678,7 @@ def writeNAfile(file_name, hash_values, attr_name):
 	for key in hash_values:
 		# check data type: hash values should be numbers for .NA file
 		try:
-			float(hash_values[key]
+			float(hash_values[key])
 		except:
 			raise Exception("Error: bad input value")
 			
@@ -677,4 +695,17 @@ def sampleHeats(heats):
 		subset[k] = heats[k] 
 
 	return subset
+
+def getNetworkNodes(network):
+	"""
+	Take a network in hash-key format and return a set containing the
+	nodes in it. 
+	"""
+	nodes = set()
+	for s in network:
+		nodes.add(s)
+		for (i, t) in network[s]:
+			nodes.add(t)
+	return nodes
+
 
