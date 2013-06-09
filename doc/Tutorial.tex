@@ -10,7 +10,9 @@
 \usepackage{amsfonts}
 \usepackage{wrapfig}
 \doublespacing
-\setcounter{tocdepth}{4}
+\setcounter{tocdepth}{3}
+
+\newcommand{\emailaddr}[1]{\textless\url{#1}\textgreater}
 
 \makeatletter
 \def\@maketitle{%
@@ -32,16 +34,20 @@
 \makeatother
 
 
-\author{Evan Paull}
+\author{Evan Paull \emailaddr{epaull@soe.ucsc.edu}}
 \title{TieDIE Tutorial \\ Version 1.0}
 \date{\today}
 
 \begin{document}
 \maketitle
 
+\tableofcontents
+
 \singlespace
 
-\chapter*{Introduction}
+\chapter{A Small Signaling Pathway Example}
+
+\section{Introduction}
 
 \noindent TieDIE is an algorithm that finds subnetworks connecting genomic perturbations to transcriptional changes in 
 large gene interaction networks. To do this, the algorithm generates a `diffusion" kernel describing
@@ -54,15 +60,33 @@ provided for those without a MATLAB license. The entire program is written in py
 package to be installed before running. TieDIE should run on any UNIX system, and has been tested on Linux and MacOS, at this 
 point. Windows compatability is not supported at this point. 
 
-\chapter*{GBM Test Signaling Pathway Example}
+\section{TieDIE Inputs}
 
 \noindent An example network and input is shown under "examples/GBM.test". Three input files are in this directory: 
 
 	\begin{itemize}
-	\item pathway.sif: A signaling pathway extracted from the 2008 TCGA GBM Nature paper supplement \cite{TCGA08}). 
-	\item upstream.input: Input heats for the `upstream" set of genes, weighted by frequency of mutation or amplification.
-	\item downstream.input: Input heats for the `downstream" set of transcriptional responses. 
+	\item pathway.sif: A signaling pathway extracted from the 2008 TCGA GBM Nature paper supplement \cite{TCGA08}). The .sif format is
+	compatible with Cytoscape \cite{Cytoscape}, and uses a 3-column \textbf{source interaction target}. For example: 
+	\begin{itemize}	
+	
+		\item MDM2	inhibits\textgreater	~ TP53
+		\item TP53	activates\textgreater	~ MDM2
+		\item ...
 	\end{itemize}
+	
+	\item upstream.input: Input heats for the `upstream" set of genes, weighted by frequency of mutation or amplification. The 3-column format
+	should contain a column for the gene name, the input heat, and the expected functional effect of the perturbation (+/-). For example:
+	\begin{itemize}	
+		\item PIK3CA	0.5	\textbf{+}
+		\item RB1	0.2	 \textbf{-}
+		\item TP53 0.3   \textbf{-}
+	\end{itemize}	
+	\item downstream.input: Input heats for the `downstream" set of transcriptional responses. The format is the same as the upstream.input file,
+	but the third column should be interpreted as the inferred activity. 
+
+	\end{itemize}
+
+\section{Running TieDIE}
 
 \noindent To run the test, change directory to this folder and type `make". The program should run in a few seconds and report 
 to stderr, a subdirectory with the output will be created. Important output files are:
@@ -75,10 +99,14 @@ to stderr, a subdirectory with the output will be created. Important output file
 	\item heats.NA: Node-attribute file formatted for Cytoscape input (visualization). 
 	\end{itemize}
 
+\section{Visualization}
+
+\subsection{Cytoscape}
+
 \noindent There are many software packages available for network visualization, but we've found the Cytoscape package \cite{Cytoscape03} to be well suited for network visualization. The TieDIE output network (tiedie.sif) can be directly imported to cytoscape 2.8 or later, and the node attribute file (heats.NA) along with the supplied properties file (vizmap.props) can be used to color nodes by linker heat, as shown in the figure below.
 
 \begin{figure}[h]
-    \includegraphics[scale=0.35]{files/tiedie_example.eps}
+    \includegraphics[scale=0.25]{files/tiedie_example.eps}
 	\caption{An small network example: sources are colored in blue, targets are red. Nodes and edges captured in the TieDIE Solution are outlined in green.}
     \label{fig:toy_network}
 \end{figure}
@@ -94,6 +122,18 @@ target node status, and nodes/edges can be highlighted, as shown in the visualiz
     \label{fig:toy_network}
 \end{figure}
 
+\clearpage
+
+\subsection{Additional Visualization Options}
+
+The more complex images shown in the TieDIE paper (Figures 4,5) allow visualization of node-specific data within an embedded network view, 
+and are referred to as 'circleplots'. 
+This code is available at \url{https://github.com/ucscCancer/paradigm-scripts} and requires the original perturbation-matrix and gene-expression data to run. The circlePlot.py program produces a set of PNG format images that can be imported to Cytoscape. Unfortunately, there's no simple way to bypass the GUI loader of Cytoscape and programatically load images, although this is rarely an issue with small networks. The code is documented by the authors, and comments or feature requests should be sent to them, or to me (\emailaddr{epaull@soe.ucsc.edu}). 
+
+\chapter{Contact:}
+
+Questions, feature requests or requests for clarification should be sent to the author of this document, at \emailaddr{epaull@soe.ucsc.edu}. I will try to respond promptly and completely to all comments and requests, so feel free to contact me!
+ 
 \bibliography{Tutorial}
 
 \end{document}

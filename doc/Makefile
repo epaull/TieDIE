@@ -8,5 +8,5 @@ Tutorial.pdf:
 	rm -f *.dvi *.aux *.bbl *.blg *.log
 
 clean:
-	rm -f *.dvi *.aux *.bbl *.blg *.log
+	rm -f *.dvi *.aux *.bbl *.blg *.log *.pdf
 

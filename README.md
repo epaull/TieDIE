@@ -43,6 +43,8 @@ for an upstream set of genes (mutated genes) and a downstream set of nodes (tran
 	cd examples/GBM.test
 	make
 
+A tutorial for this simple example is provided in doc/Tutorial.pdf. 
+
 Programs
 -------
 
@@ -59,3 +61,8 @@ Folders
 * examples : GBM and BRCA inputs for demonstration purposes
 * galaxy : Galaxy web-server wrapper for tiedie to run through the web interface. (https://main.g2.bx.psu.edu/)
 * pathways : the "superpathway" described in the TieDIE paper, used with the TCGA BRCA dataset
+
+Contact
+------
+Feature requests, comments and requests for clarification should all be sent to the author at <epaull@soe.ucsc.edu>. 
+I will try to respond quickly to all requests, so feel free to email me!
