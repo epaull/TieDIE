@@ -55,12 +55,12 @@ the flow of information in the master network, using code written in SciPy (\url
  MATLAB (\url{http://www.mathworks.com/products/matlab/}). The computation of the diffusion kernel is computationally
 intensive--particularly for a large pathway--but, once computed, the kernel can be saved to a file and re-used
 when running the TieDIE algorithm on the same master pathway. It is recommended that kernels for large networks
-be generated using MATLAB, which is considerably faster and more memory-efficient, but a free SciPy implemention is 
+be generated using MATLAB, which is considerably faster and more memory-efficient, but a free SciPy implementation is 
 provided for those without a MATLAB license. The entire program is written in python 2.7.X and requires the numpy-1.7+
-package to be installed before running. TieDIE should run on any UNIX system, and has been tested on Linux and MacOS, at this 
-point. Windows compatability is not supported at this point. 
+package to be installed before running. TieDIE should run on any UNIX system, and has been tested on Linux and Mac OS, at this 
+point. Windows compatibility is not supported at this point. 
 
-\section{TieDIE Inputs}
+\section{TieDIE Input Format}
 
 \noindent An example network and input is shown under "examples/GBM.test". Three input files are in this directory: 
 
@@ -86,16 +86,33 @@ point. Windows compatability is not supported at this point.
 
 	\end{itemize}
 
+\section{Generating TieDIE Input}
+
+\begin{figure}[h]
+    \includegraphics[scale=0.5]{files/ChiSq.eps}
+	\caption{Pearson's Chi-squared test can be used to guage the significance of differing event frequency between groups. For example, the test reports a p-value based
+	on the frequency of mutation events and the sample sizes between Class A and Class B, which can be converted to a `differential perturbation" score. }
+    \label{fig:chisq}
+\end{figure}
+
+\begin{figure}[h]
+    \includegraphics[scale=0.6]{files/MasterReg.eps}
+	\caption{The `master regulator" algorithm considers the set of genes activated by a given transcription factor as input to Gene Set Enrichment Analysis (GSEA). If rankings
+	of that set are closer to one end of that list than expected by chance, the algorithm would infer that the activity of the transcription factor is significantly effected.} 
+    \label{fig:masterreg}
+\end{figure}
+
+
 \section{Running TieDIE}
 
 \noindent To run the test, change directory to this folder and type `make". The program should run in a few seconds and report 
-to stderr, a subdirectory with the output will be created. Important output files are:
+to stderr, a sub directory with the output will be created. Important output files are:
 
 	\begin{itemize}
-	\item report.txt: Network statistics and a summary report for the TieDIE subnetwork. Also includes the results of the 
+	\item report.txt: Network statistics and a summary report for the TieDIE sub network. Also includes the results of the 
 	permutation test. 
-	\item tiedie.sif: Connecting TieDIE subnetwork.
-	\item tiedie.cn.sif: Connecting subnetwork after filtering for logically consistent paths. 
+	\item tiedie.sif: Connecting TieDIE sub network.
+	\item tiedie.cn.sif: Connecting sub network after filtering for logically consistent paths. 
 	\item heats.NA: Node-attribute file formatted for Cytoscape input (visualization). 
 	\end{itemize}
 
@@ -103,7 +120,7 @@ to stderr, a subdirectory with the output will be created. Important output file
 
 \subsection{Cytoscape}
 
-\noindent There are many software packages available for network visualization, but we've found the Cytoscape package \cite{Cytoscape03} to be well suited for network visualization. The TieDIE output network (tiedie.sif) can be directly imported to cytoscape 2.8 or later, and the node attribute file (heats.NA) along with the supplied properties file (vizmap.props) can be used to color nodes by linker heat, as shown in the figure below.
+\noindent There are many software packages available for network visualization, but we've found the Cytoscape package \cite{Cytoscape03} to be well suited for network visualization. The TieDIE output network (tiedie.sif) can be directly imported to Cytoscape 2.8 or later, and the node attribute file (heats.NA) along with the supplied properties file (vizmap.props) can be used to color nodes by linker heat, as shown in the figure below.
 
 \begin{figure}[h]
     \includegraphics[scale=0.25]{files/tiedie_example.eps}
