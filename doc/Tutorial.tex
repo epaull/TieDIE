@@ -11,6 +11,7 @@
 \usepackage{wrapfig}
 \doublespacing
 \setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{-1} 
 
 \newcommand{\emailaddr}[1]{\textless\url{#1}\textgreater}
 
@@ -45,7 +46,7 @@
 
 \singlespace
 
-\chapter{A Small Signaling Pathway Example}
+\chapter{A Signaling Pathway Example}
 
 \section{Introduction}
 
@@ -88,12 +89,27 @@ point. Windows compatibility is not supported at this point.
 
 \section{Generating TieDIE Input}
 
+\noindent The TieDIE algorithm can be used to generate sub networks for any two (or more) input sets, but the standard analysis is to 
+use high-throughput genomic data to identify a set of genomic events and connected them to a set of changes in transcription
+factor activity, inferred with gene-expression data. The former is relatively straitforward to generate, given data downstream of
+a variant-calling algorithm, typically in the form of a MAF file (\url{https://wiki.nci.nih.gov/display/TCGA/Accessing+MAF+files}). 
+For differential analysis in particular, a proportions test can be used to compare the frequency of events between two sample-groups, 
+and produce inputs that define the `source" set of a TieDIE network analysis (see Figure \ref{fig:chisq} for an illustration). 
+
 \begin{figure}[h]
     \includegraphics[scale=0.5]{files/ChiSq.eps}
 	\caption{Pearson's Chi-squared test can be used to guage the significance of differing event frequency between groups. For example, the test reports a p-value based
 	on the frequency of mutation events and the sample sizes between Class A and Class B, which can be converted to a `differential perturbation" score. }
     \label{fig:chisq}
 \end{figure}
+
+\clearpage
+
+\noindent The `target" set for TieDIE can be generated from gene expression data: for example, with microarray expression, Significnce of Microarrays (SAM) \cite{SAM} can be used to rank the genome from most to least differentially expressed. SAM uses a statistical model that is suitable for microarray data and code is available via a freely available R package, while other algorithms can be used for RNA-Seq data
+such as edgeR \cite{edgeR} and DESeq \cite{DESeq}. The ranked genome can then be used to find transcription factors with a regulated 
+set of genes that cluster to one end of this ranking: for example, Gene Set Enrichment Analysis \cite{Subramanian05} is a statistical 
+technique to find the significance of such sets, and can be used to find `master regulator" genes that are likely to be controlling expression. Figure \ref{fig:masterreg} (below) illustrates this method, and for further explanation of the `master regulator" algorithm, see the paper by Lim, WK and Califano, A \cite{MR_Califano}. 
+
 
 \begin{figure}[h]
     \includegraphics[scale=0.6]{files/MasterReg.eps}
@@ -102,6 +118,7 @@ point. Windows compatibility is not supported at this point.
     \label{fig:masterreg}
 \end{figure}
 
+\clearpage
 
 \section{Running TieDIE}
 
