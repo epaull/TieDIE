@@ -1,6 +1,7 @@
 #!/usr/bin/env	python2.7
 
 import re, math, os, sys, operator, random
+import networkx as nx
 
 def parseHeats(file, network_nodes=None):
 	"""
@@ -531,20 +532,40 @@ def connectedSubnets(network, subnet_nodes):
 	>>> network['S1'] = set()
 	>>> network['S2'] = set()
 	>>> network['T1'] = set()
+	>>> network['T3'] = set()
 	>>> network['S1'].add(('a>','T1'))
 	>>> network['S2'].add(('a>','T2'))
 	>>> network['T1'].add(('t|','T2'))
-	>>> connectedSubnets(network, set(['S1','T1','T2']))
+	>>> network['T3'].add(('t>','G5'))
+	>>> connectedSubnets(network, set(['S1','T1','T2','T3','G5']))
 	set([('S1', 'T1'), ('T1', 'T2')])
 	"""
 	edgelist = set()
+	ugraph = set()
 
 	for s in network:
 		for (i,t) in network[s]:
+			# ignore self-links
+			if s == t:
+				continue
 			if s in subnet_nodes and t in subnet_nodes:
 				edgelist.add((s,t))
+				if (t,s) not in edgelist:
+					ugraph.add((s,t))
 
-	return edgelist
+	# use networkx to find the largest connected sub graph
+	G = nx.Graph()
+	G.add_edges_from(list(ugraph))
+	list_of_lists = nx.strongly_connected_components(G)	
+	# get the biggest connected component, add edges between all 
+	validated_nodes = list_of_lists[0]
+	validated_edges = set()
+	for (s,t) in edgelist:
+		# validate both nodes
+		if s in validated_nodes and t in validated_nodes:
+			validated_edges.add((s,t))	
+
+	return validated_edges	
 
 def connectedNodes(network, hot_nodes):
 	"""
