@@ -378,8 +378,11 @@ def findLinkerCutoffSingle(source_set, up_heat_diffused, size):
 	cutoff = None
 	for (gene, heat) in sorted(up_heat_diffused.iteritems(), key=operator.itemgetter(1), reverse=True):
 
+		# add an epsilon to the cutoff so that the threshold falls just above this gene
 		cutoff = heat+EPSILON
+		# above this cutoff, the remaining set of linker genes is stored here
 		diffused_set = set(up_sorted[0:i])
+		# if the unique set of linker genes is of the desired size, stop at this cutoff...
 		if len(diffused_set.difference(source_set)) > target_size:
 			break
 		i += 1
@@ -393,6 +396,7 @@ def findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_di
 
 	target_set = set(target_set)
 	source_set = set(source_set)
+	# reverse-sort both sets by the diffused heat values
 	up_sorted = sorted(up_heat_diffused, key=up_heat_diffused.get, reverse=True)
 	down_sorted = sorted(down_heat_diffused, key=down_heat_diffused.get, reverse=True)
 	scores = {}
@@ -416,8 +420,15 @@ def findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_di
 
 def scoreLinkers(heats1, sorted1, heats2, sorted2, sourceSet, targetSet, cutoff, size):
 	"""
-		Get linkers greater than this cutoff according to reverse-sorted list..
+		Get linkers greater than this cutoff according to reverse-sorted list. 
+		
+		Inputs:
+			source and target sets, diffused heats for each and the heat-sorted
+			order for each.
+			The linker cutoff chosen.
 	""" 
+
+	# find the genes in the first set that fall above this cutoff 
 	filtered_h1 = {}
 	for l in sorted1:
 		s = heats1[l]
@@ -426,6 +437,7 @@ def scoreLinkers(heats1, sorted1, heats2, sorted2, sourceSet, targetSet, cutoff,
 
 		filtered_h1[l] = s
 
+	# genes in second set above this cutoff
 	filtered_h2 = {}
 	for l in sorted2:
 		s = heats2[l]
@@ -433,22 +445,40 @@ def scoreLinkers(heats1, sorted1, heats2, sorted2, sourceSet, targetSet, cutoff,
 			break
 
 		filtered_h2[l] = s
-
+	
+	# make sets of both 'relevance neighborhoods' R_s and R_t
 	f1 = set(filtered_h1)
 	f2 = set(filtered_h2)
 
+	# the union are all the genes in the relevance neighborhoods of each set R_s U R_t
 	union = f1.union(f2)
 	intersection = f1.intersection(f2)
+	# connecting genes are linkers not in the source or target.
+	# intutively, this is the heat that flows to the same  
 	connecting = intersection.difference(sourceSet).difference(targetSet)
+	# the score is the number of connecting 'linker' genes over the size of the entire 
+	# relevance neighborhoods
 	score = len(connecting)/float(len(union))
+	# the relative size of the connecting genes, compared to the input set sizes
 	size_frac = (len(connecting)/float(len(sourceSet.union(targetSet))))/float(size)
 	
 	return (score, size_frac)
 
 def getMinHeats(diffused):
+	"""
+	Gets the minimum heats for all genes, from a number of diffused heat vectors.
+
+	Input:
+		diffused = { 'set':{'gene1':heat1, 'gene2':...}
+
+	Returns:
+		A minimum-heat vector over all genes
+			
+	"""
 
 	mins = {}
 	for file in diffused:
+		# a hash of hashes: file is the index
 		for (gene, heat) in diffused[file].iteritems():
 			if gene in mins:
 				if mins[gene] > heat:
@@ -460,7 +490,15 @@ def getMinHeats(diffused):
 
 
 def getMaxHeats(diffused):
+	"""
+	Gets the maximum heats for all genes, from a number of diffused heat vectors.
+	Input:
+		diffused = { 'set':{'gene1':heat1, 'gene2':...}
 
+	Returns:
+		A max-heat vector over all genes
+			
+	"""
 	max = {}
 	for file in diffused:
 		for (gene, heat) in diffused[file].iteritems():
@@ -473,16 +511,26 @@ def getMaxHeats(diffused):
 	return max
 
 def filterLinkers(up_heats_diffused, down_heats_diffused, cutoff):
+	"""
+	Use the min(diffused1, diffused2) function to return a list of genes
+	that fall above that cutoff. 
+	Input:
+		diffused heats for each set, and the numeric cutoff value
 
+	Returns:
+		a list of genes above the cutoff, a hash of minimum heat values		
+	"""
 	linkers = {}
 	filtered = []
+	if down_heats_diffused is None:
+		# trivially: if this is a single list of diffused values, just return it
+		return (up_heats_diffused.keys(), up_heats_diffused)
+
 	for node in up_heats_diffused:
-		if down_heats_diffused is None:
-			min_heat = up_heats_diffused[node]	
-		else:
-			if node not in down_heats_diffused:
-				continue
-			min_heat = min(up_heats_diffused[node], down_heats_diffused[node])
+		if node not in down_heats_diffused:
+			# it doesn't make the cut if it's not in both sets
+			continue
+		min_heat = min(up_heats_diffused[node], down_heats_diffused[node])
 		linkers[node] = min_heat
 		if min_heat > cutoff:
 			filtered.append(node)
@@ -492,12 +540,20 @@ def filterLinkers(up_heats_diffused, down_heats_diffused, cutoff):
 def mapUGraphToNetwork(edge_list, network):
 	"""
 		Map undirected edges to the network to form a subnetwork
+		in the hash-key directed network format
+	
+		Input:
+			edge_list: edges in (s,t) format
+			network: network in {source:set( (int, target), ... )	
+
+		Returns:
+			Subnetwork in the data structure format of network input
 	"""
 
 	subnetwork = {}
 	
 	for (s,t) in edge_list:
-
+		# find this equivalent edge(s) in the directed network
 		# edges: 
 		if s in network:
 			for (i, nt) in network[s]:

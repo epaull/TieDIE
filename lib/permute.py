@@ -6,8 +6,10 @@ class NetBalancedPermuter:
 	"""
 
 		Encapsulates the permutation logic for an input heat set. Permutes
-		Node scores with other nodes of similar network degree. 
-
+		Node scores with other nodes of similar network degree by sorting
+		all nodes by degree, and binning them into blocks of a set size. 
+		Permutations are done only within blocks, so that the degree distribution
+		of input nodes is preserved.
 	"""
 
 
@@ -19,8 +21,11 @@ class NetBalancedPermuter:
 		"""
 	
 
+		# store node-degrees for all in network
 		self.degrees = {}
 
+		# the set of initial nodes to permute within blocks: save it to the 
+		# instantiated object here
 		self.nodes = up_set.keys()
 		# heuristic: block needs to be significantly larger than the input set size
 		BLOCK_MULTIPLE = 10
@@ -50,11 +55,11 @@ class NetBalancedPermuter:
 			
 	def permuteBlock(self, block):
 		"""
-		Take a block and randomly shuffle using python's random.shuffle method.  	
+		Take a block of nodes and randomly shuffle using python's random.shuffle method.  	
 
 		Input:
 
-			an array of node labels
+			An array of node labels
 		
 		Returns:
 		

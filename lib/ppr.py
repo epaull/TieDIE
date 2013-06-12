@@ -14,8 +14,10 @@ class PPrDiffuser:
 				- network : a network hash object
 		'''
 
+		# create a directed graph with NetworkX
 		self.G = nx.DiGraph()
-		self.G_reversed = nx.Graph()
+		# create a reversed graph for diffusion from the 'target' set
+		self.G_reversed = nx.DiGraph()
 		# convert network format to networkX Graph object
 		for source in network:
 			for (i,t) in network[source]:
@@ -34,8 +36,12 @@ class PPrDiffuser:
 				- A vector of diffused heats in hash-map (key,value) format
 		'''
 		input_pvec = None
+		#  without initializing this vector the initial probabilities will be flat
+		# and this will be equivalent to standard page rank
 		if p_vector:
 			input_pvec = {}
+			# doesn't seem to be necessary for a non-zero epsilon now, but 
+			# leave this as a place holder
 			epsilon = 0.0
 			for node in self.G.nodes(data=False):
 				if node in p_vector:
