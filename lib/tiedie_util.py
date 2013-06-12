@@ -531,14 +531,16 @@ def connectedSubnets(network, subnet_nodes):
 	>>> network = {}
 	>>> network['S1'] = set()
 	>>> network['S2'] = set()
+	>>> network['T2'] = set()
 	>>> network['T1'] = set()
 	>>> network['T3'] = set()
 	>>> network['S1'].add(('a>','T1'))
 	>>> network['S2'].add(('a>','T2'))
 	>>> network['T1'].add(('t|','T2'))
+	>>> network['T2'].add(('a>','T1'))
 	>>> network['T3'].add(('t>','G5'))
 	>>> connectedSubnets(network, set(['S1','T1','T2','T3','G5']))
-	set([('S1', 'T1'), ('T1', 'T2')])
+	set([('S1', 'T1'), ('T1', 'T2'), ('T2', 'T1')])
 	"""
 	edgelist = set()
 	ugraph = set()

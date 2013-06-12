@@ -280,19 +280,35 @@ sys.stderr.write("Writing network node stats to "+output_folder+"/node.stats\n")
 out_file = output_folder+"/node.stats"
 out = open(out_file, 'w')
 out.write("NODE\tCONNECTING\tMIN_HEAT\tOUT_DEGREE\n")
+# is each node in the solution a source, linker or target? Track in node_state
+node_types = {}
 for node in subnet_soln_nodes:
 	out_deg = out_degrees[node]
 	linker_heat = linker_scores[node]
 	connecting = "0" 
+	if node in up_heats:
+		# source node = 1
+		node_types[node] = 1	
+	elif node in down_heats:
+		# target node = -1
+		node_types[node] = -1	
+
+	# assign a connecting state if this node is not in the source or target sets
 	if node not in up_heats:
 		if down_heats is not None and node not in down_heats:
-			connecting = "1"	
+			connecting = "1"
+			node_types[node] = 0
+		
 	out.write("\t".join([node, connecting, str(linker_heat), str(out_deg)])+"\n")
 out.close()
 
 # write the cytoscape output file
+writeNAfile(output_folder+"/node_types.NA", node_types, "NodeTypes")
+
+# write the cytoscape output file
 writeNAfile(output_folder+"/heats.NA", linker_scores, "LinkerHeats")
 
+# the complete TieDIE network, before the edge-filtering step
 sys.stderr.write("Writing "+output_folder+"/tiedie.sif result \n")
 writeNetwork(subnet_soln, output_folder+"/tiedie.sif")
 
