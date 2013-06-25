@@ -23,8 +23,9 @@ required for diffusion kernel computation: the latter is free, though
 not as computationally efficient as the MATLAB implementation.
 
 * [python 2.7](http://www.python.org/): all modules.
-   * [scipy](http://www.scipy.org/): kernel generation
+   * [scipy](http://www.scipy.org/): >= 0.12.0 kernel generation
    * [numpy](http://numpy.scipy.org/)
+   * [networkx](http://networkx.github.io/)
 * [MATLAB](http://www.mathworks.com/products/matlab/): kernel generation
 
 Installation
