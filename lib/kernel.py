@@ -120,35 +120,35 @@ class Kernel:
 
     @staticmethod
     def getSYMKLDiv(v1, v2):
-		"""
-		<Development module> Get the symmetric Kullback-Leibler divergence between input vectors.
-		"""
+        """
+        <Development module> Get the symmetric Kullback-Leibler divergence between input vectors.
+        """
         return (Kernel.getKLDiv(v1, v2) + Kernel.getKLDiv(v2, v1) )/ 2
 
     @staticmethod
     def getKLDiv(v1, v2):
         """
-		<Development module> Get the Kullback-Leibler divergence between input vectors, 
-		which typically represent diffused heat values. 
-		Input:
-			2 diffused heat vectors
-		Output:
-			(float) The KL-divergence metric between vectors
+        <Development module> Get the Kullback-Leibler divergence between input vectors, 
+        which typically represent diffused heat values. 
+        Input:
+            2 diffused heat vectors
+        Output:
+            (float) The KL-divergence metric between vectors
         """
 
-		# convert values to ordered array
+        # convert values to ordered array
         arry1 = []
         arry2 = []
         for key in v1:
             arry1.append(float(v1[key]))
             arry2.append(float(v2[key]))
 
-		# normalize both vectors, adding an epsilon (pseudo-count) value for zero-values
+        # normalize both vectors, adding an epsilon (pseudo-count) value for zero-values
         EPSILON = 0.00001
         norm_arry1 = [ a+EPSILON/(sum(arry1)+len(arry1)*EPSILON) for a in arry1 ]
         norm_arry2 = [ a+EPSILON/(sum(arry2)+len(arry2)*EPSILON) for a in arry2 ]
 
-		# calculate the KL-Div
+        # calculate the KL-Div
         div_sum = 0 
         for i in range(0, len(norm_arry1)):
             div_sum += np.log( (norm_arry1[i]/norm_arry2[i]) )*norm_arry1[i]
