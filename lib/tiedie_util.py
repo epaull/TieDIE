@@ -464,6 +464,39 @@ def scoreLinkers(heats1, sorted1, heats2, sorted2, sourceSet, targetSet, cutoff,
 	
 	return (score, size_frac)
 
+def scoreLinkersMulti(input_heats, min_heats, cutoff, size):
+	"""
+		Get linkers greater than this cutoff according to reverse-sorted list. 
+		This version takes an arbitrary number of inputs.	
+		
+		Inputs:
+			input_heats: a dictionary of an arbitrary number of input heat sets. 
+			min_heats: pre-processed 'linker' heat values according to any particular
+			linker function. 
+	""" 
+	
+	# get the set of all input genes
+	all_inputs = set()
+	for name in input_heats:
+		all_inputs = all_inputs.union(input_heats[name].keys())
+	
+	# generate the set of linker genes according to the supplied heat cutoff. 
+	all_linkers = set()
+	for (gene, heat) in sorted(min_heats.iteritems(), key=operator.itemgetter(1), reverse=True):
+		if heat < cutoff:
+			break
+		all_linkers.add(gene)
+
+	# generate the union of input and linker sets, the exclusive 'connecting' set of linker/non-input genes
+	# and score based on the fractional criterion
+	all_genes = all_inputs.union(all_linkers)
+	connecting = all_linkers.difference(all_inputs)
+	score = len(connecting)/float(len(all_linkers))
+	# the relative size of the connecting genes, compared to the input set sizes
+	size_frac = (len(connecting)/float(len(all_inputs)))/float(size)
+	
+	return (score, size_frac)
+
 def getMinHeats(diffused):
 	"""
 	Gets the minimum heats for all genes, from a number of diffused heat vectors.
