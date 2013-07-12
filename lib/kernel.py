@@ -97,28 +97,6 @@ class Kernel:
         return sum
 
     @staticmethod
-    def getAngle(v1, v2):
-        """
-        Inactive Module: Get the angle between two vectors in n-space. 
-        Could be used for additional null model test & distance function.
-        """
-        arry1 = []
-        arry2 = []
-        for key in v1:
-            arry1.append(float(v1[key]))
-            arry2.append(float(v2[key]))
-
-        norm_arry1 = [ a/sum(arry1) for a in arry1 ]
-        norm_arry2 = [ a/sum(arry2) for a in arry2 ]
-
-        mag_1 = math.sqrt(dot(norm_arry1,norm_arry1))
-        mag_2 = math.sqrt(dot(norm_arry2,norm_arry2))
-
-        cos_theta = dot(norm_arry1,norm_arry2)/(mag_1*mag_2)
-
-        return math.acos(cos_theta)
-
-    @staticmethod
     def getSYMKLDiv(v1, v2):
         """
         <Development module> Get the symmetric Kullback-Leibler divergence between input vectors.
@@ -169,8 +147,10 @@ class Kernel:
         Returns:
             Diffused heat vector
         """
+		# diffuse separately on each kernel (if more than one), and store. 
         return_vectors = []
         for kernel in self.kernels:
+			# run diffusion on each constituent kernel
             diffused_vector = self.kernelMultiplyOne(kernel, vector)
             return_vectors.append(diffused_vector)
 
