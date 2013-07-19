@@ -1,0 +1,259 @@
+#!/usr/bin/env python2.7
+
+###
+### TieDIE: Tied Diffusion for Network Discovery
+###
+###	Version: 
+###
+###		Multiple (>= 3 inputs) Development Version
+###
+###	Authors: 
+###
+###		Evan Paull (epaull@soe.ucsc.edu)
+###
+###	Requirements:
+###
+### 	python 2.7.X
+###		numpy 1.7+ (with pre-computed kernels)
+###		scipy 0.12+ (for on-the-fly kernel generation)
+###
+### Minimum Inputs: 
+###		
+###		- separate source/target input heat files: tab-separated, 3 columns each with <gene> <input heat> <sign (+/-)>
+###		- a search pathway in .sif format (geneA <interaction> geneB)
+###
+### Outputs:
+###
+###		Creates a directory in the current working directory, and writes all output to that
+###		Information and warnings are logged to standard error
+
+
+import os, sys
+from collections import defaultdict
+from optparse import OptionParser
+parser = OptionParser()
+parser.add_option("-k","--kernel",dest="kernel",action="store",type="string",default=None,help="\
+Pre-computed heat diffusion kernel in tab-delimited form. Should have both a header and row labels. \
+The program will attempt to use scipy to generate a kernel if none is supplied.")
+parser.add_option("-n","--network",dest="network",action="store",default=None,help="\
+.sif network file for the curated pathway to search. <source>   <(-a>,-a|,-t>,-t|,-component>)> <target>")
+parser.add_option("-s","--size",dest="size",action="store",default=1,type="float",help="\
+Network size control factor (default 1)")
+parser.add_option("-p","--permute",dest="permute",action="store",default=1000,type="int",help="\
+Number of random permutations performed for significance analysis (default 1000)")
+parser.add_option("--pagerank",dest="pagerank",action="store_true",default=False,
+help="Use Personalized PageRank to Diffuse")
+parser.add_option("-o","--output",dest="output",action="store",default="")
+parser.add_option("-c","--consider",dest="consider_top",action="store",default=3)
+parser.add_option("-x","--product",dest="product",action="store_false",default=True)
+(opts, args) = parser.parse_args()
+
+# local imports assume the directory structure from github . 
+sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
+from kernel import Kernel
+from ppr import PPrDiffuser
+from permute import NetBalancedPermuter
+from tiedie_util import *
+
+if opts.kernel is None:
+	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
+	from kernel_scipy import SciPYKernel
+
+def min(vals):
+	min = vals[0]
+	for v in vals:
+		if v < min:
+			min = v
+
+	return min
+
+def getProduct(diffused):
+	gene_scores = {}
+	for file in diffused:
+		# a hash of hashes: file is the index
+		for (gene, heat) in diffused[file].iteritems():
+			if gene not in gene_scores:
+				gene_scores[gene] = []
+			gene_scores[gene].append(heat)
+
+	gene_products = {}
+	for gene in gene_scores:
+		product = 1
+		for v in gene_scores[gene]:
+			product *= v
+		gene_products[gene] = product
+	
+	return gene_products
+ 
+def getMinHeats(consider_top, diffused):
+	"""
+	Gets the minimum heats for all genes, from a number of diffused heat vectors.
+
+	Input:
+		diffused = { 'set':{'gene1':heat1, 'gene2':...}
+
+	Returns:
+		A minimum-heat vector over all genes
+			
+	"""
+
+	gene_scores = {}
+	for file in diffused:
+		# a hash of hashes: file is the index
+		for (gene, heat) in diffused[file].iteritems():
+			if gene not in gene_scores:
+				gene_scores[gene] = []
+			gene_scores[gene].append(heat)
+
+  
+	min_gene_values = {} 
+	for gene in gene_scores:
+		values = gene_scores[gene]
+		# get the top X
+		min_gene_values[gene] = min(sorted(values, reverse=True)[0:consider_top])
+
+	return min_gene_values
+
+def extractSubnetwork(input_heats, diffused_heats, size_control):
+	"""
+		Generate a spanning subnetwork from the supplied inputs, diffused heats and 
+		size control cutoff
+
+		Input:
+			- upstream heats
+			- downstream heats
+			- diffused upstream heats
+			- diffused downstream heats	
+			- size control factor
+
+		Output:
+			- spanning network
+			- list of nodes in that network
+	"""
+
+	linker_cutoff = None
+	linker_nodes = None
+	linker_scores = None
+
+	# get linker heats as a function of input sets
+	linker_heats = None
+	if not opts.product:
+		linker_heats = getMinHeats(int(opts.consider_top), diffused_heats)
+	else:
+		linker_heats = getProduct(diffused_heats)
+
+	EPSILON = 0.0001
+	linker_cutoff = None
+	score = None
+	linkers = set()
+	linker_scores = {}
+	for (l,h) in sorted(linker_heats.iteritems(), key=operator.itemgetter(1), reverse=True):
+		c = h-EPSILON
+		score, size_frac = scoreLinkersTest(input_heats, linker_heats, c, size_control)
+		linker_cutoff = c
+		linkers.add(l)
+		linker_scores[l] = h
+		if size_frac > 1:
+			break
+
+	# set of input heats
+	ugraph = None
+	# USE JUST LINKER GENES
+	active_nodes = set(linkers)
+	ugraph = connectedSubnets(network, active_nodes)
+	if len(ugraph) == 0:
+		raise Exception( "Couldn't find any linking graph at this size setting!")
+	subnet_soln = mapUGraphToNetwork(ugraph, network)
+	
+	subnet_soln_nodes = set()
+	for s in subnet_soln:
+		subnet_soln_nodes.add(s)
+		for (i,t) in subnet_soln[s]:
+			subnet_soln_nodes.add(t)
+
+	return (subnet_soln, subnet_soln_nodes, linker_scores, linker_cutoff)
+
+# Set the number of random permutations for the null-model test
+PERMUTE = None
+try:
+	PERMUTE = int(opts.permute)
+except:
+	raise Exception("Error: bad input format option: --permute")
+
+# parse network file: use for input validation if heat nodes are not in network
+sys.stderr.write("Parsing Network File..\n")
+network = parseNet(opts.network)
+network_nodes = getNetworkNodes(network)
+
+input_heats = {}
+input_actions = {}
+input_nodes = set()
+for file in args:
+	input_heat, signs = parseHeats(file)
+	input_heats[file] = input_heat
+	input_actions[file] = signs
+	for gene in input_heats[file]:
+		input_nodes.add(gene)
+
+# Set the desired relative size of the linker set of genes to be found by the algorithm
+size_control = float(opts.size)
+
+out_prefix = "."
+output_folder = out_prefix+"/TieDIE.Multi_"+str(opts.output)+"_RESULT_size="+str(opts.size)
+if opts.pagerank:
+	output_folder += "_PAGERANK"
+
+if not os.path.exists(output_folder):
+	os.mkdir(output_folder)
+
+#
+# Diffusion Step:
+#	Load the heat diffusion kernel and perform a kernel-multiply, or alternatively use supplied
+# 	page-rank diffused vectors
+#
+
+if opts.pagerank:
+	# use PageRank to diffuse heats: create a diffuser object to perform this step
+	diffuser = PPrDiffuser(network)
+else:
+	if opts.kernel is not None:
+		sys.stderr.write("Loading Heat Diffusion Kernel..\n")
+		# load a heat diffusion kernel to perform diffusion
+		diffuser = Kernel(opts.kernel)
+	else:
+		sys.stderr.write("Using SCIPY to compute the matrix exponential, t=0.1...\n")
+		# No kernel supplied: use SCIPY to generate a kernel on the fly, and then use it
+		# for subsequent diffusion operations
+		diffuser = SciPYKernel(opts.network)
+
+print "Diffusing Heats..."
+diffused_heats = {}
+for file in input_heats:
+	diffused_heats[file] = diffuser.diffuse(input_heats[file])
+
+# Extract a subnetwork solution from the diffused heats, the set of nodes found, the Relevance score for this network solution
+# and the heat scores for all linker genes
+subnet_soln, subnet_soln_nodes, linker_scores, linker_cutoff = extractSubnetwork(input_heats, diffused_heats, size_control)
+
+# 
+# Generate linker stats and output
+# 
+out_degrees = getOutDegrees(subnet_soln)
+print "Writing network node stats to "+output_folder+"/node.stats"
+out_file = output_folder+"/node.stats"
+out = open(out_file, 'w')
+out.write("NODE\tCONNECTING\tMIN_HEAT\tOUT_DEGREE\n")
+for node in subnet_soln_nodes:
+	out_deg = out_degrees[node]
+	linker_heat = 0
+	if node in linker_scores:
+		linker_heat = linker_scores[node]
+	connecting = "0" 
+	if node not in input_nodes:
+		connecting = "1"	
+	out.write("\t".join([node, connecting, str(linker_heat), str(out_deg)])+"\n")
+out.close()
+
+print "Writing "+output_folder+"/TieDIE.sif result "
+writeNetwork(subnet_soln, output_folder+"/TieDIE.sif")
+
