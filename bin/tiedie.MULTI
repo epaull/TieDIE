@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 ###
 ### TieDIE: Tied Diffusion for Network Discovery
@@ -149,7 +149,7 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 	linker_scores = {}
 	for (l,h) in sorted(linker_heats.iteritems(), key=operator.itemgetter(1), reverse=True):
 		c = h-EPSILON
-		score, size_frac = scoreLinkersTest(input_heats, linker_heats, c, size_control)
+		score, size_frac = scoreLinkersMulti(input_heats, linker_heats, c, size_control)
 		linker_cutoff = c
 		linkers.add(l)
 		linker_scores[l] = h
@@ -171,7 +171,7 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 		for (i,t) in subnet_soln[s]:
 			subnet_soln_nodes.add(t)
 
-	return (subnet_soln, subnet_soln_nodes, linker_scores, linker_cutoff)
+	return (subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff)
 
 # Set the number of random permutations for the null-model test
 PERMUTE = None
@@ -233,7 +233,7 @@ for file in input_heats:
 
 # Extract a subnetwork solution from the diffused heats, the set of nodes found, the Relevance score for this network solution
 # and the heat scores for all linker genes
-subnet_soln, subnet_soln_nodes, linker_scores, linker_cutoff = extractSubnetwork(input_heats, diffused_heats, size_control)
+subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff = extractSubnetwork(input_heats, diffused_heats, size_control)
 
 # 
 # Generate linker stats and output
@@ -243,14 +243,19 @@ print "Writing network node stats to "+output_folder+"/node.stats"
 out_file = output_folder+"/node.stats"
 out = open(out_file, 'w')
 out.write("NODE\tCONNECTING\tMIN_HEAT\tOUT_DEGREE\n")
-for node in subnet_soln_nodes:
-	out_deg = out_degrees[node]
-	linker_heat = 0
-	if node in linker_scores:
-		linker_heat = linker_scores[node]
+for node in linker_heats:
+	if node in linker_heats:
+		linker_heat = linker_heats[node]
 	connecting = "0" 
-	if node not in input_nodes:
+	if node in input_nodes and node in subnet_soln_nodes:
+		out_deg = out_degrees[node]
+		connecting = "0"	
+	elif node not in input_nodes and node in subnet_soln_nodes:
+		out_deg = out_degrees[node]
 		connecting = "1"	
+	else:
+		out_deg = "NA"
+		connecting = "2"	
 	out.write("\t".join([node, connecting, str(linker_heat), str(out_deg)])+"\n")
 out.close()
 
