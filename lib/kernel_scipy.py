@@ -95,6 +95,35 @@ class SciPYKernel:
 			b = self.index2node[j]
 			print "\t".join([a,b,str(v)])
 
+	def writeKernel(self, output_file):
+		"""
+		Write the computer kernel to the supplied output file
+		"""
+		out_fh = open(output_file, 'w')
+		cx = self.kernel.tocoo()
+		edges = {}
+		for i,j,v in zip(cx.row, cx.col, cx.data):
+			a = self.index2node[i]
+			b = self.index2node[j]
+			edges[(a,b)] = str(v)
+
+		# iterate through rows
+		# sort labels in alphabetical order
+		out_fh.write("Key\t"+"\t".join(sorted(self.labels))+"\n")
+		for nodeA in sorted(self.labels):
+			printstr = nodeA
+		
+			# through columns	
+			for nodeB in sorted(self.labels):
+				if (nodeA, nodeB) in edges:
+					printstr += "\t"+edges[(nodeA, nodeB)]	
+				else:
+					printstr += "\t0"
+
+			out_fh.write(printstr+"\n")
+
+		out_fh.close()
+
 	def parseNet(self, network):
 		"""
 		Parse .sif network, using just the first and third columns
