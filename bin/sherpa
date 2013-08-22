@@ -1,0 +1,79 @@
+#!/usr/bin/env python
+
+# USAGE: <opts> -n <network> <source> <intermediate> <target>
+import os, sys
+from collections import defaultdict
+from optparse import OptionParser
+parser = OptionParser()
+parser.add_option("-d", "--depth",dest="depth",action="store",default="5",help="Search depth (default 5)")
+parser.add_option("-n","--network",dest="network",action="store",default=None,help="Base Network in UCSC Pathway Format")
+parser.add_option("-s","--ignore_signs",dest="ignore_signs",action="store_false",default=True,help="Don't Consider Signs with Validating Paths")
+parser.add_option("--validator",dest="validator",action="store",default="basic")
+(opts, args) = parser.parse_args()
+
+sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
+from tiedie_util import *
+from pathway import Pathway, BasicPathValidator, SHERPAValidator, TriplesValidator
+
+# Program Constants
+SCORE_MU = 0.1
+
+input_heats = {}
+input_actions = {}
+source = args[0]
+signaling = args[1]
+target = args[2]
+for file in args:
+	input_heat, signs = parseHeats(file)
+	input_heats[file] = input_heat
+	input_actions[file] = signs
+
+source_genes = set(input_heats[source].keys())
+signaling_genes = set(input_heats[signaling].keys())
+target_genes = set(input_heats[target].keys())
+
+source_actions = input_actions[source]
+signaling_actions = input_actions[signaling]
+target_actions = input_actions[target]
+
+search_depth = int(opts.depth)
+
+input_genes = set()
+for file in input_heats:
+	for gene in input_heats[file].keys():
+		input_genes.add(gene)
+
+validator = None
+if opts.validator == "basic":
+	validator = BasicPathValidator({'source':source_genes, 
+		'source_actions':source_actions, 
+		'target':target_genes, 
+		'target_actions':target_actions})
+elif opts.validator == "sherpa":
+	validator = SHERPAValidator({'source':source_genes, 
+		'source_actions':source_actions, 
+		'target':target_genes, 
+		'target_actions':target_actions, 
+	'signaling':signaling_genes})
+elif opts.validator == "triple":
+	validator = TriplesValidator({'source':source_genes, 
+		'source_actions':source_actions, 
+		'target':target_genes, 
+		'target_actions':target_actions, 
+	'signaling':signaling_genes,
+	'ignore_signs':opts.ignore_signs})
+
+pathway = Pathway(validator=validator)
+pathway.parseNet(opts.network)
+filtered_edges = pathway.allPaths(source_genes, target_genes, int(opts.depth))
+
+captured_genes = set()
+for (s,i,t) in filtered_edges:
+	captured_genes.add(s)
+	captured_genes.add(t)
+
+print "Source Captured:\t"+"\t".join(source_genes.intersection(captured_genes))
+print "Signaling Captured:\t"+"\t".join(signaling_genes.intersection(captured_genes))
+print "Target Captured:\t"+"\t".join(target_genes.intersection(captured_genes))
+pathway.printEdgeList(filtered_edges)
+
