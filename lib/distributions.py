@@ -10,21 +10,22 @@ class Dist:
 	"""
 
 	@staticmethod
-    def fitLogNorm(vector, test_value):
-        """
-            Fit a log-normal to the background distrubtion supplied. 
-            Get the p-value based on the log of the test value. 
+	def fitLogNorm(vector, test_value):
+		"""
+			Fit a log-normal to the background distrubtion supplied. 
+			Get the p-value based on the log of the test value. 
 
-            Input:
-                vector: background distribution to fit
-                test_value: value to test against the fitted background distribution
+			Input:
+				vector: background distribution to fit
+				test_value: value to test against the fitted background distribution
 
-            Output:
-                A p-value based on that distribution    
-        """
-        mean, sd = norm.fit([log(v) for v in vector])        
-        # just the cdf: this value should be smaller 
-        p_val = norm.cdf(log(test_value), loc=mean,scale=sd)        
+			Output:
+				A p-value based on that distribution	
+		"""
+		EPSILON = 0.001
+		mean, sd = norm.fit([log(v) for v in vector])		
+		# just the cdf: this value should be smaller 
+		p_val = norm.cdf(log(test_value+EPSILON), loc=mean,scale=sd)		
 
-        return p_val
+		return p_val
 

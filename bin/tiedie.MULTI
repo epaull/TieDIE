@@ -51,6 +51,8 @@ parser.add_option("-x","--product",dest="product",action="store_false",default=T
 # local imports assume the directory structure from github . 
 sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
 from kernel import Kernel
+from distance import ProbDistance
+from distributions import Dist
 from ppr import PPrDiffuser
 from permute import NetBalancedPermuter
 from tiedie_util import *
@@ -173,6 +175,52 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 
 	return (subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff)
 
+def getPVAL(setA, setB, network, diffuser):
+
+	# Instantiate to perform random permutations of the upstream heats, using the topology of the network
+	# to correct for node degree
+	perObj_setA = NetBalancedPermuter(network, setA)
+	perObj_setB = NetBalancedPermuter(network, setB)
+	# Perform the number random permutations specified (default 1000)
+	permutedHeats_setA = perObj_setA.permute(PERMUTE)
+	permutedHeats_setB = perObj_setB.permute(PERMUTE)
+	# scores for each of the permutations
+	permuted_kldiv = []
+
+	# diffuse original heats, get the KL divergence between vectors
+	setA_diffused = diffuser.diffuse(setA, reverse=False)
+	setB_diffused = diffuser.diffuse(setB, reverse=True)
+	real_kldiv = ProbDistance.getSymmetricMeasure(setA_diffused, setB_diffused)
+
+	# permuted upstream 'sources'
+	for heats in permutedHeats_setA:
+		# diffuse the permuted scores, then find the Relevance score for that permuted set 
+		diffused_heats =  diffuser.diffuse(heats)
+		# get the angle between these
+		kldiv = ProbDistance.getSymmetricMeasure(setB_diffused, diffused_heats)
+		permuted_kldiv.append(kldiv)
+	# permuted downstream 'targets'
+	for heats in permutedHeats_setB:
+		# diffuse the permuted scores, then find the Relevance score for that permuted set 
+		diffused_heats =  diffuser.diffuse(heats)
+		# get the angle between these
+		kldiv = ProbDistance.getSymmetricMeasure(setA_diffused, diffused_heats)
+		permuted_kldiv.append(kldiv)
+
+	# just calculate the number of permuted sets that scored better than the real input set. 
+	no_lte = 0.0
+	for val in sorted(permuted_kldiv):
+		if val <= real_kldiv:
+			no_lte += 1
+		else:
+			break
+
+	# fit to lognormal, get p-value
+	empirical_pval = (no_lte+1)/(PERMUTE*2+1)
+	gauss_fit_pval = Dist.fitLogNorm(permuted_kldiv, real_kldiv)
+
+	return (empirical_pval, gauss_fit_pval)
+
 # Set the number of random permutations for the null-model test
 PERMUTE = None
 try:
@@ -261,4 +309,14 @@ out.close()
 
 print "Writing "+output_folder+"/TieDIE.sif result "
 writeNetwork(subnet_soln, output_folder+"/TieDIE.sif")
+
+# compute all pairwise distances
+print "Computing pairwise p-values between sets"
+print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
+for input1 in input_heats:
+	for input2 in input_heats:
+		if input1 == input2:
+			continue
+		empirical_p, fitted_p = getPVAL(input_heats[input1], input_heats[input2], network, diffuser)
+		print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
 
