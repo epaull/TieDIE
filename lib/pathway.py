@@ -51,39 +51,40 @@ class Pathway:
 
 		return edges
 
-	def allPaths(self, sources, targets, max_depth):
-
-		edges = set()
-		for source in sources:
-			for target in targets:
-				if source in self.G and target in self.G:
-
-					edges = edges.union(self.getPaths(source, target, max_depth))
-
-		return edges
-
-	def allPathsFrom(self, partial_path, path_ptr, source, targets, max_depth):
+	def addPathsFrom(self, partial_path, path_ptr, source, targets, max_depth):
 		"""
 			partial_path: list of genes required to get to this source node
 
 		"""
-		if max_depth == 0:
+		if not max_depth > 0:
 			return
 
+		# may not actually be in the graph: check
+		if source not in self.G.nodes():
+			return
+	
 		for nbr in self.G.neighbors(source):
+
+			# skip paths that have already been covered
+			if nbr in path_ptr['covered_nodes']:
+				continue
+
 			if nbr in targets:
 				# append this target to the partial path
 				# and add the full completed path to the set  
-				full_path = partial_path.append(nbr)
-				path_ptr['full_paths'].add(full_path)
-				for n in full_path:
+				prev_path = list(partial_path)
+				prev_path.append(nbr)
+				path_ptr['full_paths'].add(tuple(prev_path))
+				for n in prev_path:
 					path_ptr['covered_nodes'].add(n)
 			else:
 				# decrement the depth
-				self.allPathsFrom(partial_path.append(nbr), path_ptr, nbr, targets, max_depth-1)
+				prev_path = list(partial_path)
+				prev_path.append(nbr)
+				self.addPathsFrom(prev_path, path_ptr, nbr, targets, max_depth-1)
 
 
-	def allPathsTest(self, path_ptr, sources, targets, max_depth):
+	def allPaths(self, sources, targets, max_depth, valid_action=None):
 		"""
 		Return all paths connecting any of <sources> to <targets>
 		up to the maximum specified depth. Recursive function. 
@@ -97,22 +98,13 @@ class Pathway:
 		paths['covered_nodes'] = set()
 		
 		for source in sources:
-			self.addPathsFrom([], path_ptr, source, targets, max_depth)
-		
+			self.addPathsFrom([source], paths, source, targets, max_depth)
 	
 		edges = set()	
 		for path in paths['full_paths']:
-			edges = edges.union(self.pathToEdges(path))
-
-		return edges
-
-	def getPaths(self, source, target, max_depth, valid_action=None):
-
-		edges = set()
-		for path in  nx.all_simple_paths(self.G, source, target, max_depth):
+			# validate paths
 			if not self.validator.validate(path, self):
 				continue
-			# add edges to the path list
 			edges = edges.union(self.pathToEdges(path))
 
 		return edges

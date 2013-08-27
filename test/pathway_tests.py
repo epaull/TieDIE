@@ -15,9 +15,11 @@ class TestSequenceFunctions(unittest.TestCase):
 		validator = TrivialPathValidator()
 		pathwayObj = Pathway(validator=validator)
 		pathwayObj.parseNet(TEST_PATHWAY)
-		self.assertEqual(3, len(pathwayObj.allPaths(set(['CCND-CDK4_complex', 'PI3KCA', 'PIP3', 'PTEN']), set(['TP53', 'cell_cycle_progression', 'INK4']), 3)))
-		self.assertEqual(7, len(pathwayObj.allPaths(set(['CCND-CDK4_complex', 'PI3KCA', 'PIP3', 'PTEN']), set(['TP53', 'cell_cycle_progression', 'INK4']), 4)))
-		self.assertEqual(8,len(pathwayObj.allPaths(set(['CCND-CDK4_complex', 'PI3KCA', 'PIP3', 'PTEN']), set(['TP53', 'cell_cycle_progression', 'INK4']), 5)))
+		self.assertEqual(0, len(pathwayObj.allPaths(set(['CDK4', 'PI3KCA', 'PIP3', 'PTEN']), set(['TP53', 'cell_cycle_progression', 'INK4']), 1)))
+		self.assertEqual(2, len(pathwayObj.allPaths(set(['CDK4', 'PI3KCA', 'PIP3', 'PTEN']), set(['TP53', 'cell_cycle_progression', 'INK4']), 2)))
+		self.assertEqual(4, len(pathwayObj.allPaths(set(['CDK4', 'PI3KCA', 'PIP3', 'PTEN']), set(['TP53', 'cell_cycle_progression', 'INK4']), 3)))
+		self.assertEqual(8, len(pathwayObj.allPaths(set(['CDK4', 'PI3KCA', 'PIP3', 'PTEN']), set(['TP53', 'cell_cycle_progression', 'INK4']), 4)))
+		self.assertEqual(8,len(pathwayObj.allPaths(set(['CDK4', 'PI3KCA', 'PIP3', 'PTEN']), set(['TP53', 'cell_cycle_progression', 'INK4']), 5)))
 
 if __name__ == '__main__':
     unittest.main()
