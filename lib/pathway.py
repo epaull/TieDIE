@@ -62,6 +62,49 @@ class Pathway:
 
 		return edges
 
+	def allPathsFrom(self, partial_path, path_ptr, source, targets, max_depth):
+		"""
+			partial_path: list of genes required to get to this source node
+
+		"""
+		if max_depth == 0:
+			return
+
+		for nbr in self.G.neighbors(source):
+			if nbr in targets:
+				# append this target to the partial path
+				# and add the full completed path to the set  
+				full_path = partial_path.append(nbr)
+				path_ptr['full_paths'].add(full_path)
+				for n in full_path:
+					path_ptr['covered_nodes'].add(n)
+			else:
+				# decrement the depth
+				self.allPathsFrom(partial_path.append(nbr), path_ptr, nbr, targets, max_depth-1)
+
+
+	def allPathsTest(self, path_ptr, sources, targets, max_depth):
+		"""
+		Return all paths connecting any of <sources> to <targets>
+		up to the maximum specified depth. Recursive function. 
+		"""
+
+		# a paths is stored here as an ordered list of nodes
+		paths = {}
+		# complete source->target paths (lists)
+		paths['full_paths'] = set()
+		# keep an index of nodes contained in full paths
+		paths['covered_nodes'] = set()
+		
+		for source in sources:
+			self.addPathsFrom([], path_ptr, source, targets, max_depth)
+		
+	
+		edges = set()	
+		for path in paths['full_paths']:
+			edges = edges.union(self.pathToEdges(path))
+
+		return edges
 
 	def getPaths(self, source, target, max_depth, valid_action=None):
 
