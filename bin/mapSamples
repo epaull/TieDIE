@@ -1,0 +1,215 @@
+#!/usr/bin/env python
+
+import os, sys, re
+from optparse import OptionParser
+import numpy as np
+parser = OptionParser()
+parser.add_option("-s","--sample_matrix",dest="sample_matrix",action="store",default=None,help="Expression Matrix for Samples")
+parser.add_option("-b","--background",dest="background",action="store",default=None, help="Background Expression for Computing SD")
+parser.add_option("-t","--threshold",dest="threshold",action="store",default=1.0, help="Threshold Standard Deviations to call 'Up' or down'")
+parser.add_option("--min_tf_children",dest="min_tf_children",action="store",default=10, help="Minimum number of children for each transcription factor (TF) to be considered")
+parser.add_option("-n","--network",dest="network",action="store",default=None,help="Full network .sif file for inferring TF regulons")
+(opts, args) = parser.parse_args()
+
+sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
+from distributions import Dist
+from tiedie_util import *
+
+from collections import defaultdict
+
+def fitGeneData(activity_scores):
+	"""
+	Fit a normal distribution to the activity scores for each gene.
+
+		Input
+			activity_scores: scores by sample
+		Output
+			summary: Hash indexed by gene, with mean/sd summary statistics
+
+	"""
+
+	activity = {}
+	for sample in activity_scores:
+		for gene in activity_scores[sample]:
+			if gene not in activity:
+				activity[gene] = []
+			activity[gene].append(activity_scores[sample][gene])
+
+	distributions = {} 
+	for gene in activity:
+		distributions[gene] = Dist(activity[gene], method="gaussian")
+		
+	return (distributions, activity)
+
+def getTFparents(network):
+	'''
+		Take a network object and index the upstream TFs for each gene
+		and the type of interaction for each
+		i.e. parents[gene] = (set(tf1, tf2....), {tf1:'a',tf2:'i'}}
+	'''
+
+	net = parseNet(network)
+	parents = {}
+	children = {}
+	for source in net:
+		for (int, target) in net[source]:
+
+			a_type, edge_type = classifyInteraction(int)
+			act = None
+
+			# only transcriptional
+			if edge_type != "t":
+				continue
+
+			# only activating or inactivating
+			if a_type == 1:
+				act = "a"
+			elif a_type == 0:
+				act = "i"
+			else:
+				continue
+	
+			if target not in parents:
+				parents[target] = (set(), {})
+			
+			parents[target][0].add(source)
+			parents[target][1][source] = act
+
+			if source not in children:
+				children[source] = set()
+
+			children[source].add(target)
+	
+	return (parents, children)	
+
+def getExpressionActivityScores(file, binary_threshold, tf_genes, tf_parents):
+	''' 
+		Sample IDS should be the header line
+		
+		Input:
+			binary_threshold: 'include expression values only if they fall above this range (abs val)
+			tf_parents: 
+
+		Returns:
+			the inferred activity score (unitless) based on activity of it's downstream targets and the edge types
+			for each (sum of the DE scores*link_type)
+			
+	'''
+
+
+	# the number of counts per gene, per sample 
+	counts = {}
+	# store the mean scores of each gene, for each sample
+	activities = {}
+
+	# indexed by sample then by gene	
+	gene_expression = {}
+	 
+	first = True
+	sampleIDS = None
+	for line in open(file, 'r'):
+		parts = line.rstrip().split("\t")
+		gene = parts[0]
+		vals = parts[1:]
+		if first:
+			first = False
+			sampleIDS = vals
+			fixedNames = []
+			for i in range(0, len(sampleIDS)):
+				sample = sampleIDS[i][0:12]
+				fixedNames.append(sample)
+
+				# initialize dictionaries of activities, counts
+				activities[sample] = defaultdict(float)
+				counts[sample] = defaultdict(int)
+
+			sampleIDS = fixedNames
+				
+			continue
+
+		for i in range(0,len(vals)):
+			val = None
+			try:
+				val = float(vals[i])
+			except:
+				continue
+			sample = sampleIDS[i]		
+
+			###
+			### Get the gene expression, indexed by samples
+			###
+			if sample not in gene_expression:
+				gene_expression[sample] = {}
+			gene_expression[sample][gene] = val
+		
+			if abs(val) >= binary_threshold:
+
+				if gene not in tf_parents:
+					continue
+
+				# check, is this downstream of a TF of interest? 
+				# if so, add the TF, not the gene
+				parents, activation_type = tf_parents[gene]
+				for parent in tf_genes.intersection(parents):
+				
+					act = activation_type[parent]	
+					tf_act = None
+					# is this TF active? 
+					if act == 'a':
+						tf_act = val
+					elif act == 'i':	
+						tf_act = -1*val
+
+					# add the activity, and the count
+					activities[sample][parent] += tf_act
+					counts[sample][parent] += 1
+
+	# convert sums to means
+	for sample in activities:
+		for gene in activities[sample]:
+			activities[sample][gene] = activities[sample][gene]/float(counts[sample][gene])
+
+	return activities
+
+
+def getZScores(scores, stats_summary):
+	"""
+	Return z-scores for activity against the supplied background
+	distribution (summary statistics)	
+	Input
+		scores: a hash indexed by genes, values are activity scores
+		stats_summary: summary statistics of the per gene distributions
+	
+	Returns:
+		activity_z_scores: z-scores for each gene
+	"""
+	
+	activity_z_scores = {}
+
+	for sample in scores:
+		activity_z_scores[sample] = {}
+		for gene in scores[sample]:
+
+			val = scores[sample][gene]
+			
+			activity_z_scores[sample][gene] = stats_summary[gene].getZ(val)
+
+	return activity_z_scores
+
+parents, children = getTFparents(opts.network)
+# those genes which have TF children are transcriptional hubs
+tf_candidates = set()
+for tf in children:
+	if len(children[tf]) >= opts.min_tf_children:
+		tf_candidates.add(tf)
+
+bg_act = getExpressionActivityScores(opts.background, 0, tf_candidates, parents)
+background_stats, background_activity = fitGeneData(bg_act)
+
+sample_act = getExpressionActivityScores(opts.sample_matrix, 0, tf_candidates, parents)
+z_scores = getZScores(sample_act, background_stats)
+# permute gene labels to find a background distribution for 
+
+for sample in z_scores:
+	for gene in z_scores[sample]:
+		print sample+"\t"+gene+"\t"+str(z_scores[sample][gene])
