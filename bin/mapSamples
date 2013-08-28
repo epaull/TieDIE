@@ -172,7 +172,7 @@ def getExpressionActivityScores(file, binary_threshold, tf_genes, tf_parents):
 	return activities
 
 
-def getZScores(scores, stats_summary):
+def getZScores(scores, stats_summary, num_tests):
 	"""
 	Return z-scores for activity against the supplied background
 	distribution (summary statistics)	
@@ -192,7 +192,12 @@ def getZScores(scores, stats_summary):
 
 			val = scores[sample][gene]
 			
-			activity_z_scores[sample][gene] = stats_summary[gene].getZ(val)
+			p = stats_summary[gene].getP(val)
+			z = stats_summary[gene].getZ(val)
+			# correct by number of tests: i.e. the number of genes
+			corrected_p = num_tests*p
+
+			activity_z_scores[sample][gene] = (z, p, corrected_p)
 
 	return activity_z_scores
 
@@ -207,9 +212,9 @@ bg_act = getExpressionActivityScores(opts.background, 0, tf_candidates, parents)
 background_stats, background_activity = fitGeneData(bg_act)
 
 sample_act = getExpressionActivityScores(opts.sample_matrix, 0, tf_candidates, parents)
-z_scores = getZScores(sample_act, background_stats)
+z_scores = getZScores(sample_act, background_stats, len(tf_candidates))
 # permute gene labels to find a background distribution for 
 
 for sample in z_scores:
 	for gene in z_scores[sample]:
-		print sample+"\t"+gene+"\t"+str(z_scores[sample][gene])
+		print sample+"\t"+gene+"\t"+"\t".join([str(v) for v in z_scores[sample][gene]])

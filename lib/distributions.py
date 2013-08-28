@@ -51,7 +51,14 @@ class Dist:
 	def getP(self, test_value):
 
 		EPSILON = 0.001
-		p_val = norm.cdf(log(test_value+EPSILON), loc=self.mean,scale=self.sd)		
+		p_val = norm.cdf(test_value+EPSILON, loc=self.mean,scale=self.sd)		
+
+		if p_val > 0.5:
+			p_val = 1-p_val
+
+		# 2-tailed p-value
+		p_val *= 2
+
 		return p_val
 		
 	def getZ(self, test_value):
