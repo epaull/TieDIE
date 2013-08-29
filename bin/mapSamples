@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+###
+### mapSamples: Script to map individual sample data onto a network, yeilding a sample-specific
+### network
+###
+### Authors:
+###
+###		Evan Paull (epaull@soe.ucsc.edu)
+###
+###
+### Minimum Data Inputs: 
+###		
+###		- sample_matrix: a gene expression matrix with normalized, median centered values per sample (column), with
+###		gene names on the rows. Typically the values should be centered by the expression of a group of normal-adjacent 
+###		samples.
+###		- a search pathway in .sif format (geneA <interaction> geneB). Most likely a TieDIE global solution network
+###
+###
+
 import os, sys, re
 from optparse import OptionParser
 import numpy as np
