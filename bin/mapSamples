@@ -208,22 +208,28 @@ def getZScores(scores, stats_summary, num_tests):
 
 	return activity_z_scores
 
-def permuteLabels(expr_data, num_permuted_samples):
+def permuteLabels(expr_data, num_permuted_samples, by_gene=False):
 
 	data_by_gene = {}
+	all_data = []
 	for sample in expr_data:
 		for gene in expr_data[sample]:
 			if gene not in data_by_gene:
 				data_by_gene[gene] = []
 			data_by_gene[gene].append(expr_data[sample][gene])
+			all_data.append(expr_data[sample][gene])
 
 	permuted = {}
 	for i in range(0, num_permuted_samples):
 		permuted[i] = {}
 		for gene in data_by_gene:
-			vals = data_by_gene[gene]
-			# sample with replacement from that gene's data
-			permuted[i][gene] = random.sample(vals,1)[0]
+			vals = None
+			if not by_gene:
+				permuted[i][gene] = random.sample(all_data,1)[0]
+			else:
+				vals = data_by_gene[gene]
+				# sample with replacement from that gene's data
+				permuted[i][gene] = random.sample(vals,1)[0]
 
 	return permuted
 
