@@ -54,6 +54,8 @@ Number of random permutations performed for significance analysis (default 1000)
 parser.add_option("--pagerank",dest="pagerank",action="store_true",default=False,
 help="Use Personalized PageRank to Diffuse")
 parser.add_option("--all_paths",dest="all_paths",action="store_true",default=False)
+parser.add_option("--permute_downstream",dest="permute_down",action="store_true",default=False,help="\
+permute the downstream set instead of the upstream")
 (opts, args) = parser.parse_args()
 
 # local imports assume the directory structure from github . 
@@ -332,7 +334,16 @@ sys.stderr.write("Running permutation tests... (could take several minutes for i
 
 # Instantiate to perform random permutations of the upstream heats, using the topology of the network
 # to correct for node degree
-perObj = NetBalancedPermuter(network, up_heats)
+perObj = None
+stationary_input = None
+if not opts.permute_down:
+	perObj = NetBalancedPermuter(network, up_heats)
+	stationary_input = (down_heats, down_heats_diffused)
+else:
+	# if the option is supplied, permute the downstream set instead
+	perObj = NetBalancedPermuter(network, down_heats)
+	stationary_input = (up_heats, up_heats_diffused)
+
 # Perform the number random permutations specified (default 1000)
 permutedHeats = perObj.permute(PERMUTE)
 # scores for each of the permutations
