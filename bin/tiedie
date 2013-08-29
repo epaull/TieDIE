@@ -56,6 +56,7 @@ help="Use Personalized PageRank to Diffuse")
 parser.add_option("--all_paths",dest="all_paths",action="store_true",default=False)
 parser.add_option("--permute_downstream",dest="permute_down",action="store_true",default=False,help="\
 permute the downstream set instead of the upstream")
+parser.add_option("--concensus",dest="concensus",action="store",default=None, help="Subsample inputs and generate a concensus network for TieDIE (subsample rate:num samples) i.e. (0.85:100)")
 (opts, args) = parser.parse_args()
 
 # local imports assume the directory structure from github . 
@@ -64,6 +65,7 @@ from kernel import Kernel
 from ppr import PPrDiffuser
 from permute import NetBalancedPermuter
 from tiedie_util import *
+from concensus import ConcensusNetwork
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
@@ -329,3 +331,22 @@ pval = (no_gte+1)/(PERMUTE+1)
 report_fh.write("P-value: "+str(pval)+" (with "+str(PERMUTE)+" random permutations)\n")
 report_fh.close()
 
+
+# generate concensus network: optional
+if opts.concensus:
+	rate, samples = opts.concensus.split(":")	
+	rate = float(rate)
+	samples = int(samples)
+	cNet = ConcensusNetwork(network, diffuser)
+	cNet.generate(up_heats, down_heats, samples, rate, options)
+	edge_frac, node_frac = cNet.getFractions()
+
+	# write out edge/node fractions
+	edge_fh = open(output_folder+"/edge_frequencies.txt", 'w')
+	node_fh = open(output_folder+"/node_frequencies.txt", 'w')
+	for edge in edge_frac:
+		edge_fh.write("\t".join(edge)+"\t"+str(edge_frac[edge])+"\n")
+	for node in node_frac:
+		node_fh.write(node+"\t"+str(node_frac[node])+"\n")
+	edge_fh.close()
+	node_fh.close()
