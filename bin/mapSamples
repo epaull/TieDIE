@@ -5,7 +5,7 @@ from optparse import OptionParser
 import numpy as np
 parser = OptionParser()
 parser.add_option("-s","--sample_matrix",dest="sample_matrix",action="store",default=None,help="Expression Matrix for Samples")
-parser.add_option("-b","--background",dest="background",action="store",default=None, help="Background Expression for Computing SD")
+parser.add_option("-b","--background",dest="background",action="store",default=None, help="Background Expression for Computing SD (Optional: otherwise the sample data will be used, with a permutation null model")
 parser.add_option("-t","--threshold",dest="threshold",action="store",default=1.0, help="Threshold Standard Deviations to call 'Up' or down'")
 parser.add_option("--min_tf_children",dest="min_tf_children",action="store",default=10, help="Minimum number of children for each transcription factor (TF) to be considered")
 parser.add_option("-n","--network",dest="network",action="store",default=None,help="Full network .sif file for inferring TF regulons")
@@ -82,7 +82,7 @@ def getTFparents(network):
 	
 	return (parents, children)	
 
-def getExpressionActivityScores(file, binary_threshold, tf_genes, tf_parents):
+def getExpression(file):
 	''' 
 		Sample IDS should be the header line
 		
@@ -96,11 +96,6 @@ def getExpressionActivityScores(file, binary_threshold, tf_genes, tf_parents):
 			
 	'''
 
-
-	# the number of counts per gene, per sample 
-	counts = {}
-	# store the mean scores of each gene, for each sample
-	activities = {}
 
 	# indexed by sample then by gene	
 	gene_expression = {}
@@ -118,10 +113,6 @@ def getExpressionActivityScores(file, binary_threshold, tf_genes, tf_parents):
 			for i in range(0, len(sampleIDS)):
 				sample = sampleIDS[i][0:12]
 				fixedNames.append(sample)
-
-				# initialize dictionaries of activities, counts
-				activities[sample] = defaultdict(float)
-				counts[sample] = defaultdict(int)
 
 			sampleIDS = fixedNames
 				
@@ -141,7 +132,23 @@ def getExpressionActivityScores(file, binary_threshold, tf_genes, tf_parents):
 			if sample not in gene_expression:
 				gene_expression[sample] = {}
 			gene_expression[sample][gene] = val
-		
+
+	return gene_expression
+
+def getActivityScores(expr_data, binary_threshold, tf_genes, tf_parents): 
+
+	# the number of counts per gene, per sample 
+	counts = {}
+	# store the mean scores of each gene, for each sample
+	activities = {}
+
+	for sample in expr_data:
+		activities[sample] = defaultdict(float)
+		counts[sample] = defaultdict(int)
+		for gene in expr_data[sample]:	
+
+			val = expr_data[sample][gene]
+
 			if abs(val) >= binary_threshold:
 
 				if gene not in tf_parents:
@@ -201,6 +208,25 @@ def getZScores(scores, stats_summary, num_tests):
 
 	return activity_z_scores
 
+def permuteLabels(expr_data, num_permuted_samples):
+
+	data_by_gene = {}
+	for sample in expr_data:
+		for gene in expr_data[sample]:
+			if gene not in data_by_gene:
+				data_by_gene[gene] = []
+			data_by_gene[gene].append(expr_data[sample][gene])
+
+	permuted = {}
+	for i in range(0, num_permuted_samples):
+		permuted[i] = {}
+		for gene in data_by_gene:
+			vals = data_by_gene[gene]
+			# sample with replacement from that gene's data
+			permuted[i][gene] = random.sample(vals,1)[0]
+
+	return permuted
+
 parents, children = getTFparents(opts.network)
 # those genes which have TF children are transcriptional hubs
 tf_candidates = set()
@@ -208,11 +234,24 @@ for tf in children:
 	if len(children[tf]) >= opts.min_tf_children:
 		tf_candidates.add(tf)
 
-bg_act = getExpressionActivityScores(opts.background, 0, tf_candidates, parents)
-background_stats, background_activity = fitGeneData(bg_act)
+# get expression activity scores
+sample_expr = getExpression(opts.sample_matrix)
+sample_act = getActivityScores(sample_expr, 0, tf_candidates, parents)
 
-sample_act = getExpressionActivityScores(opts.sample_matrix, 0, tf_candidates, parents)
-z_scores = getZScores(sample_act, background_stats, len(tf_candidates))
+bg_act = None
+bg_stats = None
+bg_activity = None
+if opts.background:
+	bg_expr = getExpression(opts.background)
+	bg_act = getActivityScores(bg_expr, 0, tf_candidates, parents)
+else:
+	# permute gene labels in sample activity to get a background distribution of activity scores
+	permuted_expr = permuteLabels(sample_expr, 30)	
+	bg_act = getActivityScores(permuted_expr, 0, tf_candidates, parents)
+
+bg_stats, bg_activity = fitGeneData(bg_act)
+		
+z_scores = getZScores(sample_act, bg_stats, len(tf_candidates))
 # permute gene labels to find a background distribution for 
 
 for sample in z_scores:
