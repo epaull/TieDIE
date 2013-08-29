@@ -69,61 +69,6 @@ if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
 	from kernel_scipy import SciPYKernel
 
-def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control, set_alpha):
-	"""
-		Generate a spanning subnetwork from the supplied inputs, diffused heats and 
-		size control cutoff
-
-		Input:
-			- upstream heats
-			- downstream heats
-			- diffused upstream heats
-			- diffused downstream heats	
-			- size control factor
-
-		Output:
-			- spanning network
-			- list of nodes in that network
-	"""
-
-	linker_cutoff = None
-	linker_nodes = None
-	linker_scores = None
-	alpha_score = None
-	# optional: if a linker cutoff is supplied, use this without performing the computation
-	if set_alpha:
-		alpha_score = None
-		linker_cutoff = float(set_alpha)
-	else:
-		# find the 'cutoff' for selecting linker genes that fall above this threshold
-		linker_cutoff, alpha_score = findLinkerCutoff(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control)
-
-	# 'linker' nodes and the scores for each, after we threshold at the cutoff
-	linker_nodes, linker_scores = filterLinkers(up_heats_diffused, down_heats_diffused, linker_cutoff)
-
-	ugraph = None
-	if opts.pcst:
-		# optional: use the Prize Collecting Steiner Tree formulation to connect the network
-		ugraph = runPCST(up_heats, down_heats, linker_nodes, opts.network)
-	else:
-		nodes = set(up_heats).union(set(down_heats)).union(set(linker_nodes))
-		# simply find connected edges with both nodes in the selected set
-		ugraph = connectedSubnets(network, nodes)
-
-	if len(ugraph) == 0:
-		sys.stderr.write("Couldn't find any linking graph at this size setting!\n")
-		return (None, None, None, None)
-	# map the undirected edge list back to the directed network, which includes edge types, and directionality
-	subnet_soln = mapUGraphToNetwork(ugraph, network)
-	
-	subnet_soln_nodes = set()
-	for s in subnet_soln:
-		subnet_soln_nodes.add(s)
-		for (i,t) in subnet_soln[s]:
-			subnet_soln_nodes.add(t)
-
-	return (subnet_soln, subnet_soln_nodes, alpha_score, linker_scores)
-
 def findConsistentPaths(up_signs, down_signs, searchNetwork, output_folder, output):
 
 	"""
@@ -272,7 +217,12 @@ down_heats_diffused = diffuser.diffuse(down_heats, reverse=True)
 
 # Extract a subnetwork solution from the diffused heats, the set of nodes found, the Relevance score for this network solution
 # and the heat scores for all linker genes
-subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control, opts.alpha)
+options = {}
+options['alpha'] = opts.alpha
+options['size'] = opts.size
+options['network_file'] = opts.network
+options['pcst'] = opts.pcst
+subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, network, options)
 
 # 
 # Generate linker stats and output

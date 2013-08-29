@@ -122,10 +122,8 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 		size control cutoff
 
 		Input:
-			- upstream heats
-			- downstream heats
-			- diffused upstream heats
-			- diffused downstream heats	
+			- input heats
+			- diffused input heats
 			- size control factor
 
 		Output:

@@ -3,6 +3,64 @@
 import re, math, os, sys, operator, random
 import networkx as nx
 
+def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, network, options):
+	"""
+		Generate a spanning subnetwork from the supplied inputs, diffused heats and 
+		size control cutoff
+
+		Input:
+			- upstream heats
+			- downstream heats
+			- diffused upstream heats
+			- diffused downstream heats	
+			- size control factor
+
+		Output:
+			- spanning network
+			- list of nodes in that network
+	"""
+
+	size_control = options['size']
+	set_alpha = options['alpha']
+
+	linker_cutoff = None
+	linker_nodes = None
+	linker_scores = None
+	alpha_score = None
+	# optional: if a linker cutoff is supplied, use this without performing the computation
+	if set_alpha:
+		alpha_score = None
+		linker_cutoff = float(set_alpha)
+	else:
+		# find the 'cutoff' for selecting linker genes that fall above this threshold
+		linker_cutoff, alpha_score = findLinkerCutoff(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control)
+
+	# 'linker' nodes and the scores for each, after we threshold at the cutoff
+	linker_nodes, linker_scores = filterLinkers(up_heats_diffused, down_heats_diffused, linker_cutoff)
+
+	ugraph = None
+	if options['pcst']:
+		# optional: use the Prize Collecting Steiner Tree formulation to connect the network
+		ugraph = runPCST(up_heats, down_heats, linker_nodes, options['network_file'])
+	else:
+		nodes = set(up_heats).union(set(down_heats)).union(set(linker_nodes))
+		# simply find connected edges with both nodes in the selected set
+		ugraph = connectedSubnets(network, nodes)
+
+	if len(ugraph) == 0:
+		sys.stderr.write("Couldn't find any linking graph at this size setting!\n")
+		return (None, None, None, None)
+	# map the undirected edge list back to the directed network, which includes edge types, and directionality
+	subnet_soln = mapUGraphToNetwork(ugraph, network)
+	
+	subnet_soln_nodes = set()
+	for s in subnet_soln:
+		subnet_soln_nodes.add(s)
+		for (i,t) in subnet_soln[s]:
+			subnet_soln_nodes.add(t)
+
+	return (subnet_soln, subnet_soln_nodes, alpha_score, linker_scores)
+
 def parseHeats(file, network_nodes=None):
 	"""
 	Parse input heats file in form:
