@@ -334,10 +334,19 @@ report_fh.close()
 
 # generate concensus network: optional
 if opts.concensus:
-	rate, samples = opts.concensus.split(":")	
+	rate = None
+	samples = None
+	# the set to permute (or both if none specified)
+	subsample_which = None
+	if len(opts.concensus.split(":")) == 3:
+		rate, samples, subsample_which = opts.concensus.split(":")	
+	else:
+		rate, samples = opts.concensus.split(":")	
 	rate = float(rate)
 	samples = int(samples)
 	cNet = ConcensusNetwork(network, diffuser)
+
+	options['subsample_which'] = subsample_which	
 	cNet.generate(up_heats, down_heats, samples, rate, options)
 	edge_frac, node_frac = cNet.getFractions()
 
