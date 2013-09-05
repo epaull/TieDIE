@@ -27,6 +27,7 @@ parser.add_option("-b","--background",dest="background",action="store",default=N
 parser.add_option("-t","--threshold",dest="threshold",action="store",default=1.0, help="Threshold Standard Deviations to call 'Up' or down'")
 parser.add_option("--min_tf_children",dest="min_tf_children",action="store",default=10, help="Minimum number of children for each transcription factor (TF) to be considered")
 parser.add_option("-n","--network",dest="network",action="store",default=None,help="Full network .sif file for inferring TF regulons")
+parser.add_option("-a","--activityscores",dest="activityscores",action="store_true",default=False,help="Print just the activity score matrix and quit")
 (opts, args) = parser.parse_args()
 
 sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
@@ -251,6 +252,22 @@ def permuteLabels(expr_data, num_permuted_samples, by_gene=False):
 
 	return permuted
 
+def printActivityScores(z_scores, genes):
+
+	samples = z_scores.keys()
+	print "Gene\t"+"\t".join(samples)
+	for gene in genes:
+		printstr = gene
+		for sample in samples:
+
+			if gene not in z_scores[sample]:
+				break
+
+			score, pval, bonferroni_p = z_scores[sample][gene]	
+			printstr += "\t"+str(score)
+
+		print printstr
+
 parents, children = getTFparents(opts.network)
 # those genes which have TF children are transcriptional hubs
 tf_candidates = set()
@@ -278,6 +295,5 @@ bg_stats, bg_activity = fitGeneData(bg_act)
 z_scores = getZScores(sample_act, bg_stats, len(tf_candidates))
 # permute gene labels to find a background distribution for 
 
-for sample in z_scores:
-	for gene in z_scores[sample]:
-		print sample+"\t"+gene+"\t"+"\t".join([str(v) for v in z_scores[sample][gene]])
+if opts.activityscores:
+	printActivityScores(z_scores, tf_candidates)

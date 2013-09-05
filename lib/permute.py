@@ -116,3 +116,77 @@ class NetBalancedPermuter:
 
         return permuted
 
+class SupervisedPermuter:
+    """
+        Encapsulates the permutation logic for an input heat set. Permutes
+        Node scores with a supplied background list of other nodes
+        all nodes by degree, and binning them into blocks of a set size. 
+        Permutations are done only within blocks, so that the degree distribution
+        of input nodes is preserved.
+    """
+    
+    def __init__(self, network, up_set, background_nodes):
+        """
+            Input:
+                network: net[source] = [(i, t)]
+                up_set: up_set[node] = score
+                background_nodes: a set of nodes to swap with the input set
+        """
+    
+
+        # the set of initial nodes to permute within blocks: save it to the 
+        # instantiated object here
+        self.nodes = up_set.keys()
+        self.bg = background_nodes
+
+        self.scores = {}
+        for node in self.nodes:
+            # save the scores as a set of tuples 
+            self.scores[(node, str(up_set[node]))] = 1
+
+        # build an index of all nodes in the network
+        valid_network_nodes = set()
+        for s in network:
+            valid_network_nodes.add(s)
+            for (i, t) in network[s]:
+                valid_network_nodes.add(t)
+
+        # set the background, validate 
+        self.bg = background_nodes.intersection(valid_network_nodes)
+        if len(self.bg) == 0:
+            raise Exception("Error: none of the supplied background nodes are in the network!")
+        elif len(self.bg) <= len(self.nodes):
+            raise Exception("Error: background validation set is no larger than input set!")
+
+        self.input_set_size = len(self.nodes)
+
+    def permute(self, iterations):
+        """
+        Generate an array of random permutations of node scores.
+        
+        Input:
+            iteration: the number of permutations to generate
+
+        Returns:
+            an array of hashes: each hash indexes the nodes to permuted scores
+        """    
+        permuted = []    
+        for i in range(0, iterations):
+            permuted.append(self.permuteOne())
+
+        return permuted
+
+    def permuteOne(self):
+        """
+        for each. 
+        """    
+
+        # container for scores
+        swapped_scores = {}
+        rand_sample = random.sample(self.bg, self.input_set_size)
+        i = 0
+        for (node, score) in self.scores:
+            swapped_scores[rand_sample[i]] = score 
+            i += 1
+
+        return swapped_scores
