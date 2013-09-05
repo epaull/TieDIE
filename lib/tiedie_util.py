@@ -61,6 +61,16 @@ def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffus
 
 	return (subnet_soln, subnet_soln_nodes, alpha_score, linker_scores)
 
+def parseLST(file):
+
+	lst = []
+	fh = open(file, 'r')
+	for line in fh:
+		line = line.rstrip()
+		lst.append(line)
+
+	return lst
+
 def parseHeats(file, network_nodes=None):
 	"""
 	Parse input heats file in form:

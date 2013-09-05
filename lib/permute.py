@@ -1,6 +1,6 @@
 
 from copy import copy
-from random import shuffle
+from random import shuffle, sample
 
 class NetBalancedPermuter:
     """
@@ -183,10 +183,10 @@ class SupervisedPermuter:
 
         # container for scores
         swapped_scores = {}
-        rand_sample = random.sample(self.bg, self.input_set_size)
+        rand_sample = sample(self.bg, self.input_set_size)
         i = 0
         for (node, score) in self.scores:
-            swapped_scores[rand_sample[i]] = score 
+            swapped_scores[rand_sample[i]] = float(score)
             i += 1
 
         return swapped_scores

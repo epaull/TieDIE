@@ -32,6 +32,7 @@ import os, sys
 from collections import defaultdict
 from optparse import OptionParser
 parser = OptionParser()
+# required inputs here:
 parser.add_option("-u","--up_heats",dest="up_heats",action="store",type="string",default=None,help="\
 File with upstream heats: <gene>    <input heat (0-100)>    <sign (+/-)>")
 parser.add_option("-d","--down_heats",dest="down_heats",action="store",type="string",default=None,help="\
@@ -39,10 +40,11 @@ File with downstream heats: <gene>    <input heat (0-100)>    <sign (+/-)>")
 parser.add_option("-k","--kernel",dest="kernel",action="store",type="string",default=None,help="\
 Pre-computed heat diffusion kernel in tab-delimited form. Should have both a header and row labels. \
 The program will attempt to use scipy to generate a kernel if none is supplied.")
-parser.add_option("--pcst",dest="pcst",action="store_true",default=False,help="\
-Use the Prize-Collecting Steiner Tree Formulation to Generate a Connecting Subnetwork (Bionet must be installed)")
 parser.add_option("-n","--network",dest="network",action="store",default=None,help="\
 .sif network file for the curated pathway to search. <source>   <(-a>,-a|,-t>,-t|,-component>)> <target>")
+# optional inputs here:
+parser.add_option("--pcst",dest="pcst",action="store_true",default=False,help="\
+Use the Prize-Collecting Steiner Tree Formulation to Generate a Connecting Subnetwork (Bionet must be installed)")
 parser.add_option("-s","--size",dest="size",action="store",default=1,type="float",help="\
 Network size control factor (default 1)")
 parser.add_option("-a","--alpha",dest="alpha",action="store",default=None,help="Linker Cutoff \
@@ -57,15 +59,16 @@ parser.add_option("--all_paths",dest="all_paths",action="store_true",default=Fal
 parser.add_option("--permute_downstream",dest="permute_down",action="store_true",default=False,help="\
 permute the downstream set instead of the upstream")
 parser.add_option("--concensus",dest="concensus",action="store",default=None, help="Subsample inputs and generate a concensus network for TieDIE (subsample rate:num samples) i.e. (0.85:100)")
+parser.add_option("--background",dest="background",action="store",default=None, help="Provide a background list of genes for the permutation-based significance test. Genes must be in the input network.")
 (opts, args) = parser.parse_args()
 
 # local imports assume the directory structure from github . 
 sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
 from kernel import Kernel
 from ppr import PPrDiffuser
-from permute import NetBalancedPermuter
+from permute import *
 from tiedie_util import *
-from concensus import ConcensusNetwork
+from concensus import *
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
@@ -288,12 +291,24 @@ sys.stderr.write("Running permutation tests... (could take several minutes for i
 # to correct for node degree
 perObj = None
 stationary_input = None
+
+# optional: if supplied, sample the background list of genes for the significance test
+background_list = None
+if opts.background:
+	background_list = set(parseLST(opts.background))
+
 if not opts.permute_down:
-	perObj = NetBalancedPermuter(network, up_heats)
+	if opts.background:
+		perObj = SupervisedPermuter(network, up_heats, background_list)
+	else:
+		perObj = NetBalancedPermuter(network, up_heats)
 	stationary_input = (down_heats, down_heats_diffused)
 else:
-	# if the option is supplied, permute the downstream set instead
-	perObj = NetBalancedPermuter(network, down_heats)
+	if opts.background:
+		perObj = SupervisedPermuter(network, down_heats, background_list)
+	else:
+		# if the option is supplied, permute the downstream set instead
+		perObj = NetBalancedPermuter(network, down_heats)
 	stationary_input = (up_heats, up_heats_diffused)
 
 # Perform the number random permutations specified (default 1000)
