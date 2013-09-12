@@ -715,7 +715,7 @@ def connectedSubnets(network, subnet_nodes):
 	# use networkx to find the largest connected sub graph
 	G = nx.Graph()
 	G.add_edges_from(list(ugraph))
-	list_of_lists = nx.strongly_connected_components(G)	
+	list_of_lists = nx.connected_components(G)	
 	# get the biggest connected component, add edges between all 
 	validated_nodes = list_of_lists[0]
 	validated_edges = set()
