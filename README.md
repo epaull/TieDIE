@@ -63,6 +63,12 @@ Folders
 * galaxy : Galaxy web-server wrapper for tiedie to run through the web interface. (https://main.g2.bx.psu.edu/)
 * pathways : the "superpathway" described in the TieDIE paper, used with the TCGA BRCA dataset
 
+In Press
+------
+TieDIE was first featured in the 2013 Nature paper "Comprehensive molecular characterization of clear cell renal cell carcinoma". In this TCGA (The Cancer Genome Atlas) network publication, a TieDIE analysis was used to connnect frequently mutated genes involving the SWI/SNF chromatin remodelling complex to a diverse set of gene expression changes characteristic of tumor development and progression. The TieDIE manuscript was not yet published at the time of the Nature publication and so is cited by name and author only. The TieDIE network solution is shown in figure 4 of the main text, which can be found at this link: http://www.nature.com/nature/journal/v499/n7456/full/nature12222.html . 
+
+
+
 Contact
 ------
 Feature requests, comments and requests for clarification should all be sent to the author at <epaull@soe.ucsc.edu>. 
