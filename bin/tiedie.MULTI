@@ -315,6 +315,8 @@ for input1 in input_heats:
 	for input2 in input_heats:
 		if input1 == input2:
 			continue
-		empirical_p, fitted_p = getPVAL(input_heats[input1], input_heats[input2], network, diffuser)
-		print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
+		# print kl divergence
+		real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1], diffused_heats[input2])
+		print "\t".join([input1, input2, str(real_kldiv)])
+		#empirical_p, fitted_p = getPVAL(input_heats[input1], input_heats[input2], network, diffuser)
 
