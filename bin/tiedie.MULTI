@@ -311,12 +311,18 @@ writeNetwork(subnet_soln, output_folder+"/TieDIE.sif")
 # compute all pairwise distances
 print "Computing pairwise p-values between sets"
 print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
+comparisons = set()
 for input1 in input_heats:
 	for input2 in input_heats:
+
 		if input1 == input2:
 			continue
+		if (input2, input1) in comparisons:
+			continue
+
 		# print kl divergence
 		real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1], diffused_heats[input2])
 		print "\t".join([input1, input2, str(real_kldiv)])
 		#empirical_p, fitted_p = getPVAL(input_heats[input1], input_heats[input2], network, diffuser)
 
+		comparisons.add( (input1, input2) )
