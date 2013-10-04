@@ -1,6 +1,7 @@
 
 from copy import copy
 from random import shuffle, sample
+from random import shuffle
 
 class NetBalancedPermuter:
     """
@@ -116,6 +117,7 @@ class NetBalancedPermuter:
 
         return permuted
 
+<<<<<<< HEAD
 class SupervisedPermuter:
     """
         Encapsulates the permutation logic for an input heat set. Permutes
