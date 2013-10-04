@@ -117,7 +117,6 @@ class NetBalancedPermuter:
 
         return permuted
 
-<<<<<<< HEAD
 class SupervisedPermuter:
     """
         Encapsulates the permutation logic for an input heat set. Permutes
