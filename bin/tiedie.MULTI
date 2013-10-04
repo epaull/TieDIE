@@ -39,8 +39,8 @@ parser.add_option("-n","--network",dest="network",action="store",default=None,he
 .sif network file for the curated pathway to search. <source>   <(-a>,-a|,-t>,-t|,-component>)> <target>")
 parser.add_option("-s","--size",dest="size",action="store",default=1,type="float",help="\
 Network size control factor (default 1)")
-parser.add_option("-p","--permute",dest="permute",action="store",default=1000,type="int",help="\
-Number of random permutations performed for significance analysis (default 1000)")
+parser.add_option("-p","--permute",dest="permute",action="store",default=50,type="int",help="\
+Number of random permutations performed for significance analysis (default 50)")
 parser.add_option("--pagerank",dest="pagerank",action="store_true",default=False,
 help="Use Personalized PageRank to Diffuse")
 parser.add_option("-o","--output",dest="output",action="store",default="")
@@ -173,7 +173,7 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 
 	return (subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff)
 
-def getPVAL(setA, setB, network, diffuser):
+def getPVAL(setA, setB, network, diffuser, writeToFile=None):
 
 	# Instantiate to perform random permutations of the upstream heats, using the topology of the network
 	# to correct for node degree
@@ -212,6 +212,14 @@ def getPVAL(setA, setB, network, diffuser):
 			no_lte += 1
 		else:
 			break
+
+	if writeToFile:
+		fh = open(writeToFile, 'w')
+		fh.write("Real:"+str(real_kldiv)+"\n")
+		fh.write("Score\n")
+		for val in permuted_kldiv:
+			fh.write(str(val)+"\n")
+		fh.close()
 
 	# fit to lognormal, get p-value
 	empirical_pval = (no_lte+1)/(PERMUTE*2+1)
@@ -322,7 +330,9 @@ for input1 in input_heats:
 
 		# print kl divergence
 		real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1], diffused_heats[input2])
-		print "\t".join([input1, input2, str(real_kldiv)])
-		#empirical_p, fitted_p = getPVAL(input_heats[input1], input_heats[input2], network, diffuser)
+		#print "\t".join([input1, input2, str(real_kldiv)])
+		output_file = output_folder+"/"+input1+":"+input2+".dist.txt"
+		empirical_p, fitted_p = getPVAL(input_heats[input1], input_heats[input2], network, diffuser, output_file)
+		print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
 
 		comparisons.add( (input1, input2) )
