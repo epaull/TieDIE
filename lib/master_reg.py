@@ -1,5 +1,6 @@
 
 from tiedie_util import classifyInteraction
+import operator
 
 class ActivityScores: 
 	"""
@@ -7,19 +8,19 @@ class ActivityScores:
 
 	"""
 
-	def __init__(self, network, min_hub=10):
-        """
-            Input:
-                network: net[source] = [(i, t)]
-				ranked_list: ranked list of differential gene expression
+	def __init__(self, network, scores, min_hub=10):
+		"""
+			Input:
+				network: net[source] = [(i, t)]
+				scores: hash map of differential gene expression (think D-statistics from SAM)
 				min_hub: minimum number of genes regulated transcriptionally required 
 				to be considered as a potential 'master regulator'
-        """
+		"""
 
 		# build a list of candidate regulators
 		self.candidates = {}	
 
-        for source in network:
+		for source in network:
 
 			positive_regulon = set()
 			negative_regulon = set()
@@ -37,13 +38,15 @@ class ActivityScores:
 			if len(positive_regulon) + len(negative_regulon) >= min_hub:
 				self.candidates[source] = (positive_regulon, negative_regulon)
 
+		self.generateRankings(scores)
 
-	def scoreRegulators(self, scores):
+	def generateRankings(self, scores):
 
 		"""
 			scores: scores of differential gene expression. These canonically are 
 			d-statistic values output from Significance of Microarrays (SAM, Tishirani 2003).
 			Input as a hash-map.
+			Store the results in the internal index
 		"""
 
 		# invert the list, and then merge the postive and negative lists
@@ -56,7 +59,7 @@ class ActivityScores:
 		# ascending order
 		reverse_genes = []
 		reverse_scores = []
-		reverse_sorted = sorted(scores.iteritems(), key=operator.itemgetter(1), reverse=False)
+		for (gene, score) in sorted(scores.iteritems(), key=operator.itemgetter(1), reverse=False):
 			reverse_genes.append(gene)
 			reverse_scores.append(score)
 
@@ -67,7 +70,6 @@ class ActivityScores:
 		R_c = []
 		# scores are combined
 		R_c_SCORES = []
-		R_c_index = 0	
 		while True:
 
 			# termination conditions
@@ -75,17 +77,20 @@ class ActivityScores:
 				break
 			# append from the other list if one is finished
 			elif indexF >= len(forward_genes):
+				# the gene name and set are indexed
 				R_c.append( (reverse_genes[indexR], '-') )
-				R_c_SCORES.append( reverse_scores[indexR] )
+				R_c_SCORES.append( -reverse_scores[indexR] )
 				indexR += 1
+				continue
 			elif indexR >= len(reverse_genes):
 				R_c.append( (forward_genes[indexF], '+') )
 				R_c_SCORES.append( forward_scores[indexF] )
 				indexF += 1
+				continue
 					
 			f_score = forward_scores[indexF]
 			# inverse score...
-			r_score = -forward_scores[indexR]
+			r_score = -reverse_scores[indexR]
 
 			if f_score > r_score:
 				R_c.append( (forward_genes[indexF], '+') )
@@ -95,7 +100,9 @@ class ActivityScores:
 				R_c.append( (reverse_genes[indexR], '-') )
 				R_c_SCORES.append( r_score )
 				indexR += 1
-	
+
+		self.scores = R_c_SCORES
+		self.list = R_c	
 
 class ExtendedGSEA:
 
