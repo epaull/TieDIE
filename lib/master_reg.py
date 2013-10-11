@@ -1,6 +1,7 @@
 
 from tiedie_util import classifyInteraction
 import operator
+import math
 
 class ActivityScores: 
 	"""
@@ -115,12 +116,6 @@ class ActivityScores:
 		self.scores = R_c_SCORES
 		self.list = R_c	
 
-		# build the total sum
-		sum = 0
-		for score in self.scores:
-			sum += abs(score)
-
-		self.norm_const = sum
 
 	def scoreReg(self, pos_query_set, neg_query_set):
 		"""
@@ -128,7 +123,18 @@ class ActivityScores:
 		"""
 
 		# from Lim et al., 2009 PSB
-		self.rs_const = float(2*len(self.scores)-(len(pos_query_set)+len(neg_query_set)))
+		rs_const = float(2*len(self.scores)-(len(pos_query_set)+len(neg_query_set)))
+		running_sum = 0.0
+
+		# -- norm const
+		sum_norm_const = 0.0
+		for i in range(0, len(self.list)):
+			gene, set = self.list[i]
+			if (set == '-' and gene in neg_query_set) or (set == '+' and gene in pos_query_set):
+				# compute the sum of abs values of all scores in this set to get a normalization 
+				# constant at the end
+				sum_norm_const += abs(self.scores[i])
+
 		running_sum = 0.0
 		max_rs = 0
 		min_rs = 0
@@ -136,14 +142,14 @@ class ActivityScores:
 
 			gene, set = self.list[i]
 			if (set == '-' and gene in neg_query_set) or (set == '+' and gene in pos_query_set):
-				running_sum += self.scores[i]/self.norm_const
+				running_sum += self.scores[i]/sum_norm_const
 			else:
 				# score decreases in this case
-				running_sum -= 1/self.rs_const	
+				running_sum -= 1/rs_const	
 
 			if running_sum > max_rs:
 				max_rs = running_sum	
 			elif running_sum < min_rs:
 				min_rs = running_sum	
-	
+
 		return max_rs+min_rs
