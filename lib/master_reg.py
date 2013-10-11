@@ -2,6 +2,7 @@
 from tiedie_util import classifyInteraction
 import operator
 import math
+import random
 
 class ActivityScores: 
 	"""
@@ -42,15 +43,56 @@ class ActivityScores:
 
 		self.generateRankings(scores)
 
-	def scoreCandidates(self):
+	@staticmethod
+	def getPval(real, background):
+
+		count = 0.0
+		empirical_pval = None
+		if real >= 0:
+			# sort in descending order
+			for val in sorted(background, reverse=True):
+				if val >= real:
+					count += 1
+				else:
+					break
+			empirical_pval = (count+1)/(len(background)+1)
+		else:
+			# ascending order	
+			for val in sorted(background, reverse=False):
+				if val <= real:
+					count += 1
+				else:
+					break
+			empirical_pval = (count+1)/(len(background)+1)
+
+		return empirical_pval
+
+		
+	def scoreCandidates(self, nperms=1000):
 	
 		scores = {}	
 		for c in self.candidates:
 			pos, neg = self.candidates[c]
 			score = self.scoreReg(pos, neg)
-			scores[c] = score
+			bg = self.generateBackground(c, nperms)
+			pval = ActivityScores.getPval(score, bg)
+			scores[c] = (score, pval)
 
 		return scores	
+
+	def generateBackground(self, candidate, nperms):
+	
+		pos, neg = self.candidates[candidate]
+		# sample of this set size
+		# of random genes to generate each permutation
+		background_scores = []
+		for i in range(0, nperms):
+			sampled_pos = set(random.sample(self.gene_list, len(pos)))
+			sampled_neg = set(random.sample(self.gene_list, len(neg)))
+			score = self.scoreReg(sampled_pos, sampled_neg)
+			background_scores.append(score)	
+
+		return background_scores	
 
 	def generateRankings(self, scores):
 
@@ -63,9 +105,15 @@ class ActivityScores:
 
 		# invert the list, and then merge the postive and negative lists
 		# descending order
+
+		# save this data	
+		self.gene_list = []
+		self.scores = scores
+
 		forward_genes = []
 		forward_scores = []
 		for (gene, score) in sorted(scores.iteritems(), key=operator.itemgetter(1), reverse=True):
+			self.gene_list.append(gene)
 			forward_genes.append(gene)
 			forward_scores.append(score)
 		# ascending order
@@ -115,6 +163,7 @@ class ActivityScores:
 
 		self.scores = R_c_SCORES
 		self.list = R_c	
+		
 
 
 	def scoreReg(self, pos_query_set, neg_query_set):
@@ -123,7 +172,7 @@ class ActivityScores:
 		"""
 
 		# from Lim et al., 2009 PSB
-		rs_const = float(2*len(self.scores)-(len(pos_query_set)+len(neg_query_set)))
+		rs_const = float(2.0*len(self.scores)-(len(pos_query_set)+len(neg_query_set)))
 		running_sum = 0.0
 
 		# -- norm const
@@ -153,3 +202,5 @@ class ActivityScores:
 				min_rs = running_sum	
 
 		return max_rs+min_rs
+
+
