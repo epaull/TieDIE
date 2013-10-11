@@ -1,0 +1,8 @@
+hub1	-t>	pos1
+hub1	-t>	pos2
+hub1	-t>	pos3
+hub1	-t|	neg1
+hub1	-t|	neg2
+hub2	-t>	neg2
+hub2	-t>	neg1
+hub2	-t>	neg3

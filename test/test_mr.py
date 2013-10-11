@@ -22,7 +22,9 @@ class TestSequenceFunctions(unittest.TestCase):
 		for i in range(0, len(valid_scores)):
 			self.assertEqual(mrObj.scores[i], valid_scores[i])
 			self.assertEqual(mrObj.list[i], valid_indexes[i])
-			
+
+		for (tf, score) in mrObj.scoreCandidates().items():
+			print tf+"\t"+str(score)
 
 if __name__ == '__main__':
     unittest.main()
