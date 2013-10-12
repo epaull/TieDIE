@@ -11,7 +11,7 @@ TEST_PATHWAY = "test_files/test.tfnet.sif"
 TEST_DATA = "test_files/test.tfnet.data.tab"
 
 P1 = "test_files/test.tfnetbig.sif"
-P1_D = "test_files/test.tfnetbig.data.tab"
+P1_D = "test_files/test.thcaBRAF.vs.RAS.tab"
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -42,7 +42,9 @@ class TestSequenceFunctions(unittest.TestCase):
 		# signs is empty here
 		scores, signs = parseHeats(P1_D)
 		mrObj = ActivityScores(network, scores, min_hub=10)
-		for (tf, result) in mrObj.scoreCandidates(nperms=10).items():
+		for (tf, result) in mrObj.scoreCandidates(nperms=100).items():
+			if result[1] > 0.05:
+				continue
 			print tf+"\t"+"\t".join([str(v) for v in result])
 
 
