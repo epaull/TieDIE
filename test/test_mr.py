@@ -11,7 +11,8 @@ TEST_PATHWAY = "test_files/test.tfnet.sif"
 TEST_DATA = "test_files/test.tfnet.data.tab"
 
 P1 = "test_files/test.tfnetbig.sif"
-P1_D = "test_files/test.thcaBRAF.vs.RAS.tab"
+P1_D = "test.de"
+#P1_D = "test_files/test.thcaBRAF.vs.RAS.tab"
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -34,18 +35,19 @@ class TestSequenceFunctions(unittest.TestCase):
 			self.assertEqual(mrObj.scores[i], valid_scores[i])
 			self.assertEqual(mrObj.list[i], valid_indexes[i])
 
-		print "Tiny Example:"
-		for (tf, score) in mrObj.scoreCandidates(nperms=100000).items():
-			print tf+"\t"+str(score)
+		#print "Tiny Example:"
+		#for (tf, score) in mrObj.scoreCandidates(nperms=100).items():
+		#	print tf+"\t"+str(score)
 
 		network = parseNet(P1)
 		# signs is empty here
 		scores, signs = parseHeats(P1_D)
 		mrObj = ActivityScores(network, scores, min_hub=10)
-		for (tf, result) in mrObj.scoreCandidates(nperms=100).items():
-			if result[1] > 0.05:
-				continue
-			print tf+"\t"+"\t".join([str(v) for v in result])
+		result = mrObj.scoreCandidates(nperms=100)
+		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
+			#if result > 0.05:
+			#	continue
+			print tf+"\t"+"\t".join([str(float(v)) for v in result])
 
 
 if __name__ == '__main__':

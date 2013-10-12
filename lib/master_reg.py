@@ -3,6 +3,8 @@ from tiedie_util import classifyInteraction
 import operator
 import math
 import random
+from scipy import stats
+import numpy as np
 
 class ActivityScores: 
 	"""
@@ -42,6 +44,8 @@ class ActivityScores:
 				self.candidates[source] = (positive_regulon, negative_regulon)
 
 		self.generateRankings(scores)
+		# for chisquare test
+		self.generateCategories(scores)
 
 	@staticmethod
 	def getPval(real, background):
@@ -68,6 +72,16 @@ class ActivityScores:
 		return empirical_pval
 
 		
+	def scoreCandidatesFISHER(self):
+	
+		scores = {}	
+		for c in self.candidates:
+			pos, neg = self.candidates[c]
+			pval = self.scoreCHISQ(pos, neg)
+			scores[c] = pval
+
+		return scores	
+
 	def scoreCandidates(self, nperms=1000):
 	
 		scores = {}	
@@ -93,6 +107,23 @@ class ActivityScores:
 			background_scores.append(score)	
 
 		return background_scores	
+
+	def generateCategories(self, scores):
+		"""
+		Used for fisher's exact test: bin positive and negative sets 
+		of each
+		"""
+
+		# create two sets: genes are either significantly up or down in either
+		self.pos_de_set = set()
+		self.neg_de_set = set()
+
+		for (gene, score) in sorted(scores.iteritems(), key=operator.itemgetter(1), reverse=True):
+			if score > 0:
+				self.pos_de_set.add(gene)
+			else:
+				self.neg_de_set.add(gene)
+	
 
 	def generateRankings(self, scores):
 
@@ -165,6 +196,35 @@ class ActivityScores:
 		self.list = R_c	
 		
 
+
+	def scoreCHISQ(self, pos_query_set, neg_query_set):
+		"""
+		Use chisquare approximation to fisher's exact test
+		to calculate p-values for each
+		"""
+
+		# compute probability of random distribution in each
+		# category by simple combinatorics
+		s1 = len(self.pos_de_set)
+		s2 = len(self.neg_de_set)
+		norm = float(s1+s2)
+		s1 = s1/norm
+		s2 = s2/norm
+		# expected frequencies for each set
+		expected = np.array([s1, s2])
+
+		up_AGREE = float(len(pos_query_set.intersection(self.pos_de_set)))
+		up_DISAGREE = float(len(pos_query_set.intersection(self.neg_de_set)))
+		observed = np.array([up_AGREE, up_DISAGREE])
+		UP_chisq, UP_pval = stats.chisquare(observed, expected)
+		
+		down_AGREE = float(len(neg_query_set.intersection(self.neg_de_set)))
+		down_DISAGREE = float(len(neg_query_set.intersection(self.pos_de_set)))
+		observed = np.array([down_DISAGREE, down_AGREE])
+		DOWN_chisq, DOWN_pval = stats.chisquare(observed, expected)
+
+		combined_p = UP_pval*DOWN_pval
+		return combined_p	
 
 	def scoreReg(self, pos_query_set, neg_query_set):
 		"""
