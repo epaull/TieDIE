@@ -322,6 +322,21 @@ for input1 in input_heats:
 # edge over subsampling, and the inclusion fractions over the range of size
 # options. Save this. This part is for Ed to do.
 
+# TODO un-hardcode these variables
+sizes = range(1,10) # the sizes that should be tried
+num_subsamples = 1000 # the number of subsamples on which TieDIE should be run
+
+# node_heats[i,j,k] is the heat at node j in subsample i at size k
+node_heats = numpy.zeros(shape=(num_subsamples, num_nodes, len(sizes)))
+# edge_heats[i,j,k] is the heat at edge j in subsample i at size k
+edge_heats = numpy.zeros(shape=(num_subsamples, num_edges, len(sizes)))
+
+for s in sizes:
+    for i in range(num_subsamples):
+        # TODO create subsample of size s and run TieDIE on it
+        # then, store node & edge heats in node_heats and edge_heats
+
+
 # TODO Generate patient-specific networks by running TieDIE on each patient's
 # data, setting the input size to parity and doing a simple depth-first
 # traversal from mutations to TFs. Store each network in a file.
