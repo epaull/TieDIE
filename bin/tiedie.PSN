@@ -290,11 +290,9 @@ diffused_heats = {}
 for file in input_heats:
 	diffused_heats[file] = diffuser.diffuse(input_heats[file])
 
-##
-## Run Master Regulator analysis on the DE list, if supplied. Find
-## master regulators and add them to the input set list. Save the list of master-regulators
-## in a file and continue with the analysis. 
-##
+# TODO Run Master Regulator analysis on the differential expression list, if
+# supplied. Find master regulators and add them to the input set list. Save the
+# list of master-regulators in a file and continue with the analysis. 
 
 # compute all pairwise distances, validate the input sets first
 print "Computing pairwise p-values between sets"
@@ -309,23 +307,21 @@ for input1 in input_heats:
 			continue
 
 		# print kl divergence
-		real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1], diffused_heats[input2])
+		real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1],
+                diffused_heats[input2])
 		#print "\t".join([input1, input2, str(real_kldiv)])
 		output_file = output_folder+"/"+input1+":"+input2+".dist.txt"
-		empirical_p, fitted_p = getPVAL(input_heats[input1], input_heats[input2], network, diffuser, output_file)
+		empirical_p, fitted_p = getPVAL(input_heats[input1],
+                input_heats[input2], network, diffuser, output_file)
 		print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
 
 		comparisons.add( (input1, input2) )
 
+# TODO Run TieDIE on the cohort data, over a range of size-options over a range
+# of subsampled inputs. Store a distribution of heats for each node and each 
+# edge over subsampling, and the inclusion fractions over the range of size
+# options. Save this. This part is for Ed to do.
 
-##
-## Run TieDIE on the cohort data, over a range of size-options over a range of subsampled inputs. 
-## Store a distribution of heats for each node and each edge over subsampling, and the inclusion
-## fractions over the range of size options. Save this.
-##
-
-
-##
-## Generate patient-specific networks by running TieDIE on each, setting the input size to parity
-## and doing a simple depth-first traversal from mutations to TFs. Store each network in a file. 
-##
+# TODO Generate patient-specific networks by running TieDIE on each patient's
+# data, setting the input size to parity and doing a simple depth-first
+# traversal from mutations to TFs. Store each network in a file.
