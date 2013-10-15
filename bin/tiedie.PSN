@@ -187,6 +187,7 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 	return (subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff)
 
 def getPVAL(setA, setB, network, diffuser, writeToFile=None):
+    # TODO add docstring!
 
 	# Instantiate to perform random permutations of the upstream heats, using the topology of the network
 	# to correct for node degree
@@ -330,28 +331,33 @@ num_subsamples = 1000 # the number of subsamples on which TieDIE should be run
 node_heats = numpy.zeros(shape=(num_subsamples, num_nodes))
 # edge_heats[i,j] is the heat at edge j in subsample i
 edge_heats = numpy.zeros(shape=(num_subsamples, num_edges))
-# node_inclusion_fractions[(i,j)] is the fraction of subsamples at size i in
-# which node j was included in the subnetwork
+# node_inclusion_fractions[(s,n)] is the fraction of subsamples at size s in
+# which node n was included in the subnetwork
 node_inclusion_fractions = defaultdict(float)
-# edge_inclusion_fractions[(i,j)] is the fraction of subsamples at size i in
-# which edge j was included in the subnetwork
+# edge_inclusion_fractions[(s,p,q)] is the fraction of subsamples at size s in
+# which the edge from node p to node q was included in the subnetwork
 edge_inclusion_fractions = defaultdict(float)
 
 for i in range(num_subsamples):
-    # TODO create subsample and diffuse heat
-    # then, store node & edge heats in node_heats[i,node] and edge_heats[i,edge]
+    # TODO create subsample and store in subsample_input_heats
+
+    # diffuse the subsample heats:
+    subsample_diffused_heats = diffuser.diffuse(subsample_input_heats)
+
+    # TODO store node & edge heats in node_heats[i,node] and edge_heats[i,edge]
+
     for size in sizes:
         subnet, subnet_nodes, temp, temp = extractSubnetwork(
                 subsample_input_heats, subsample_diffused_heats, size)
 
-        # loop through nodes
+        # add a fraction to all nodes appearing in this subnetwork
         for node in subnet_nodes:
-            node_inclusion_fractions[(i,node)] += 1/num_subsamples
+            node_inclusion_fractions[(size,node)] += 1.0/num_subsamples
         
-        # loop through edges
-        for from_node in subnet.keys():
-            for inter, to_node in subnet[from_node]:
-                edge_inclusion_fractions[(i,from_node,to_node)] += 1/num_subsamples
+        # add a fraction to all edges appearing in this subnetwork
+        for from_node, (inter, to_node) in subnet.iteritems():
+            edge_inclusion_fractions[(size,from_node,to_node)] +=\
+                    1.0/num_subsamples
 
 # TODO Generate patient-specific networks by running TieDIE on each patient's
 # data, setting the input size to parity and doing a simple depth-first
