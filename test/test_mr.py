@@ -42,7 +42,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		network = parseNet(P1)
 		# signs is empty here
 		scores, signs = parseHeats(P1_D)
-		mrObj = ActivityScores(network, scores, min_hub=10)
+		mrObj = ActivityScores(network, scores, min_hub=100)
 		result = mrObj.scoreCandidates(nperms=100)
 		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
 			#if result > 0.05:

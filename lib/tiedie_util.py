@@ -888,4 +888,150 @@ def getNetworkNodes(network):
 			nodes.add(t)
 	return nodes
 
+def getExpression(file):
+	''' 
+		Sample IDS should be the header line
+		
+		Input:
+			binary_threshold: 'include expression values only if they fall above this range (abs val)
+			tf_parents: 
+
+		Returns:
+			the inferred activity score (unitless) based on activity of it's downstream targets and the edge types
+			for each (sum of the DE scores*link_type), indexed by sample, then gene id
+			
+	'''
+
+
+	# indexed by sample then by gene	
+	gene_expression = {}
+	 
+	first = True
+	sampleIDS = None
+	for line in open(file, 'r'):
+		parts = line.rstrip().split("\t")
+		gene = parts[0]
+		vals = parts[1:]
+		if first:
+			first = False
+			sampleIDS = vals
+			fixedNames = []
+			for i in range(0, len(sampleIDS)):
+				sample = sampleIDS[i][0:12]
+				fixedNames.append(sample)
+
+			sampleIDS = fixedNames
+				
+			continue
+
+		for i in range(0,len(vals)):
+			val = None
+			try:
+				val = float(vals[i])
+			except:
+				continue
+			sample = sampleIDS[i]		
+
+			###
+			### Get the gene expression, indexed by samples
+			###
+			if sample not in gene_expression:
+				gene_expression[sample] = {}
+			gene_expression[sample][gene] = val
+
+	return gene_expression
+
+def getTFparents(network):
+	'''
+		Take a network object and index the upstream TFs for each gene
+		and the type of interaction for each
+		i.e. parents[gene] = (set(tf1, tf2....), {tf1:'a',tf2:'i'}}
+	'''
+
+	parents = {}
+	children = {}
+	for source in network:
+		for (int, target) in net[source]:
+
+			a_type, edge_type = classifyInteraction(int)
+			act = None
+
+			# only transcriptional
+			if edge_type != "t":
+				continue
+
+			# only activating or inactivating
+			if a_type == 1:
+				act = "a"
+			elif a_type == 0:
+				act = "i"
+			else:
+				continue
+	
+			if target not in parents:
+				parents[target] = (set(), {})
+			
+			parents[target][0].add(source)
+			parents[target][1][source] = act
+
+			if source not in children:
+				children[source] = set()
+
+			children[source].add(target)
+	
+	return (parents, children)	
+
+def getActivityScores(expr_data, tf_genes, tf_parents, binary_threshold=0): 
+	'''
+		Takes expresion data and collapsed network information describing
+		the transcriptional regulators of each gene, and combines it 
+		to form an 'activity score' for each transcriptionally active gene.
+		
+		Input:
+			expr_data: expression data indexed by sample, then gene
+			binary_threshold: threshold to consider expression data (typically normal-subtracted values or
+			z-scores). Defaults to 0 (i.e. no threshold)
+			tf_genes: set of candidate TF regulators
+			tf_parents: indexed dictionary that returns the parents of each gene	
+	'''
+	# the number of counts per gene, per sample 
+	counts = {}
+	# store the mean scores of each gene, for each sample
+	activities = {}
+
+	for sample in expr_data:
+		activities[sample] = defaultdict(float)
+		counts[sample] = defaultdict(int)
+		for gene in expr_data[sample]:	
+
+			val = expr_data[sample][gene]
+
+			if abs(val) >= binary_threshold:
+
+				if gene not in tf_parents:
+					continue
+
+				# check, is this downstream of a TF of interest? 
+				# if so, add the TF, not the gene
+				parents, activation_type = tf_parents[gene]
+				for parent in tf_genes.intersection(parents):
+				
+					act = activation_type[parent]	
+					tf_act = None
+					# is this TF active? 
+					if act == 'a':
+						tf_act = val
+					elif act == 'i':	
+						tf_act = -1*val
+
+					# add the activity, and the count
+					activities[sample][parent] += tf_act
+					counts[sample][parent] += 1
+
+	# convert sums to means
+	for sample in activities:
+		for gene in activities[sample]:
+			activities[sample][gene] = activities[sample][gene]/float(counts[sample][gene])
+
+	return activities
 

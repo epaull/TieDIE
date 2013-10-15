@@ -1,5 +1,5 @@
 
-from tiedie_util import classifyInteraction
+from tiedie_util import *
 import operator
 import math
 import random
@@ -8,7 +8,7 @@ import numpy as np
 
 class ActivityScores: 
 	"""
-		Uses the supplied pathway to find 	
+		Uses the supplied pathway to find 
 
 	"""
 
@@ -82,7 +82,7 @@ class ActivityScores:
 
 		return scores	
 
-	def scoreCandidates(self, nperms=1000):
+	def scoreCandidates(self, threshold=0.05, nperms=1000):
 	
 		scores = {}	
 		for c in self.candidates:
@@ -90,7 +90,9 @@ class ActivityScores:
 			score = self.scoreReg(pos, neg)
 			bg = self.generateBackground(c, nperms)
 			pval = ActivityScores.getPval(score, bg)
-			scores[c] = (score, pval)
+			# filter first by p-value, then weight by the score
+			if pval < threshold:
+				scores[c] = (score, pval)
 
 		return scores	
 
@@ -264,3 +266,152 @@ class ActivityScores:
 		return max_rs+min_rs
 
 
+class SSActivityScores: 
+	"""
+	Sample-specific activity scores module. The approach is to compute a 'activity' score for each 
+	hub and sample, by averaging the expression (vs normal) of it's regulon. A background distribution
+	for each is then built from permuted data, and z-scores for each sample/hub pair are returned. 
+	"""
+	def __init__(self, network, expression_matrix, min_hub=10):
+
+
+		NET_parents, NET_children = getTFparents(network)
+		tf_candidates = set()
+		for tf in children:
+			if len(children[tf]) >= min_hub:
+				tf_candidates.add(tf)
+	
+		# get expression activity scores
+		self.sample_expr = getExpression(expression_matrix)
+		self.sample_activities = getActivityScores(self.sample_expr, tf_candidates, NET_parents)
+	
+		# generate a background distribution based on permuted (real) data, 
+		# then fit to a gaussian distribution 
+		permuted_expr = permuteLabels(sample_expr, 30)	
+		bg_act = getActivityScores(permuted_expr, tf_candidates, NET_parents)
+		bg_stats, bg_activity = fitGeneData(bg_act)
+	
+		# z-scores based on fitted background data
+		z_scores = getZScores(sample_act, bg_stats, len(tf_candidates))
+
+	def fitGeneData(self, bg_activity_scores):
+		"""
+		Fit a normal distribution to the activity scores for each gene.
+	
+			Input
+				activity_scores: permuted scores by sample
+			Output
+				summary: Hash indexed by gene, with mean/sd summary statistics
+	
+		"""
+	
+		activity = {}
+		for sample in bg_activity_scores:
+			for gene in bg_activity_scores[sample]:
+				if gene not in activity:
+					activity[gene] = []
+				activity[gene].append(bg_activity_scores[sample][gene])
+	
+		distributions = {} 
+		for gene in activity:
+			distributions[gene] = Dist(activity[gene], method="gaussian")
+			
+		return (distributions, activity)
+
+	def getActivityScores(expr_data, binary_threshold, tf_genes, tf_parents): 
+	
+		# the number of counts per gene, per sample 
+		counts = {}
+		# store the mean scores of each gene, for each sample
+		activities = {}
+	
+		for sample in expr_data:
+			activities[sample] = defaultdict(float)
+			counts[sample] = defaultdict(int)
+			for gene in expr_data[sample]:	
+	
+				val = expr_data[sample][gene]
+	
+				if abs(val) >= binary_threshold:
+	
+					if gene not in tf_parents:
+						continue
+	
+					# check, is this downstream of a TF of interest? 
+					# if so, add the TF, not the gene
+					parents, activation_type = tf_parents[gene]
+					for parent in tf_genes.intersection(parents):
+					
+						act = activation_type[parent]	
+						tf_act = None
+						# is this TF active? 
+						if act == 'a':
+							tf_act = val
+						elif act == 'i':	
+							tf_act = -1*val
+	
+						# add the activity, and the count
+						activities[sample][parent] += tf_act
+						counts[sample][parent] += 1
+	
+		# convert sums to means
+		for sample in activities:
+			for gene in activities[sample]:
+				activities[sample][gene] = activities[sample][gene]/float(counts[sample][gene])
+	
+		return activities
+	
+	def getZScores(scores, stats_summary, num_tests):
+		"""
+		Return z-scores for activity against the supplied background
+		distribution (summary statistics)	
+		Input
+			scores: a hash indexed by genes, values are activity scores
+			stats_summary: summary statistics of the per gene distributions
+		
+		Returns:
+			activity_z_scores: z-scores for each gene
+		"""
+		
+		activity_z_scores = {}
+	
+		for sample in scores:
+			activity_z_scores[sample] = {}
+			for gene in scores[sample]:
+	
+				val = scores[sample][gene]
+				
+				p = stats_summary[gene].getP(val)
+				z = stats_summary[gene].getZ(val)
+				# correct by number of tests: i.e. the number of genes
+				corrected_p = num_tests*p
+	
+				activity_z_scores[sample][gene] = (z, p, corrected_p)
+	
+		return activity_z_scores
+	
+	def permuteLabels(expr_data, num_permuted_samples, by_gene=False):
+	
+		data_by_gene = {}
+		all_data = []
+		for sample in expr_data:
+			for gene in expr_data[sample]:
+				if gene not in data_by_gene:
+					data_by_gene[gene] = []
+				data_by_gene[gene].append(expr_data[sample][gene])
+				all_data.append(expr_data[sample][gene])
+	
+		permuted = {}
+		for i in range(0, num_permuted_samples):
+			permuted[i] = {}
+			for gene in data_by_gene:
+				vals = None
+				if not by_gene:
+					permuted[i][gene] = random.sample(all_data,1)[0]
+				else:
+					vals = data_by_gene[gene]
+					# sample with replacement from that gene's data
+					permuted[i][gene] = random.sample(vals,1)[0]
+	
+		return permuted
+		
