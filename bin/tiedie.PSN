@@ -61,6 +61,7 @@ from distributions import Dist
 from ppr import PPrDiffuser
 from permute import NetBalancedPermuter
 from tiedie_util import *
+from itertools import combinations
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
@@ -74,6 +75,8 @@ def min(vals):
 
 	return min
 
+# NOTE should all these functions be moved to a file in lib, as they currently
+# appear in multiple files in bin? --ESR
 def getProduct(diffused):
 	gene_scores = {}
 	for file in diffused:
@@ -97,10 +100,12 @@ def getMinHeats(consider_top, diffused):
 	Gets the minimum heats for all genes, from a number of diffused heat vectors.
 
 	Input:
-		diffused = { 'set':{'gene1':heat1, 'gene2':...}
+        consider_top -- ???
+		diffused = { 'set':{'gene1':heat1, 'gene2':...} -- what?
 
 	Returns:
-		A minimum-heat vector over all genes
+		A minimum-heat vector over all genes represented as a dict where the
+        name of the gene is the key
 			
 	"""
 
@@ -123,17 +128,19 @@ def getMinHeats(consider_top, diffused):
 
 def extractSubnetwork(input_heats, diffused_heats, size_control):
 	"""
-		Generate a spanning subnetwork from the supplied inputs, diffused heats and 
-		size control cutoff
+	Generate a spanning subnetwork from the supplied inputs, diffused heats and 
+	size control cutoff
 
-		Input:
-			- input heats
-			- diffused input heats
-			- size control factor
+	Input:
+		- input heats (in what format?)
+		- diffused input heats (in what format?)
+		- size control factor (explain what this means?)
 
-		Output:
-			- spanning network
-			- list of nodes in that network
+	Returns: tuple containing the following elements
+		- spanning network in 'network[node] = [(edge_type, other_node)]' format
+		- set of node ID strings in that network
+        - linker heats
+        - linker cutoff
 	"""
 
 	linker_cutoff = None
@@ -153,9 +160,10 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 	linkers = set()
 	linker_scores = {}
 	for (l,h) in sorted(linker_heats.iteritems(), key=operator.itemgetter(1), reverse=True):
-		c = h-EPSILON
-		score, size_frac = scoreLinkersMulti(input_heats, linker_heats, c, size_control)
-		linker_cutoff = c
+        # NOTE why is this function returning the last value of linker_cutoff?
+		linker_cutoff = h-EPSILON
+		score, size_frac = scoreLinkersMulti(input_heats, linker_heats,
+                linker_cutoff, size_control)
 		linkers.add(l)
 		linker_scores[l] = h
 		if size_frac > 1:
@@ -167,10 +175,10 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 	active_nodes = set(linkers)
 	ugraph = connectedSubnets(network, active_nodes)
 	if len(ugraph) == 0:
-		raise Exception( "Couldn't find any linking graph at this size setting!")
+		raise Exception("Couldn't find any linking graph at this size setting!")
 	subnet_soln = mapUGraphToNetwork(ugraph, network)
 	
-	subnet_soln_nodes = set()
+	subnet_soln_nodes = set() # set of node ID strings contained in the subnet
 	for s in subnet_soln:
 		subnet_soln_nodes.add(s)
 		for (i,t) in subnet_soln[s]:
@@ -297,25 +305,16 @@ for file in input_heats:
 # compute all pairwise distances, validate the input sets first
 print "Computing pairwise p-values between sets"
 print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
-comparisons = set()
-for input1 in input_heats:
-	for input2 in input_heats:
+for input1, input2 in combinations(input_heats, 2):
 
-		if input1 == input2:
-			continue
-		if (input2, input1) in comparisons:
-			continue
-
-		# print kl divergence
-		real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1],
-                diffused_heats[input2])
-		#print "\t".join([input1, input2, str(real_kldiv)])
-		output_file = output_folder+"/"+input1+":"+input2+".dist.txt"
-		empirical_p, fitted_p = getPVAL(input_heats[input1],
-                input_heats[input2], network, diffuser, output_file)
-		print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
-
-		comparisons.add( (input1, input2) )
+	# print kl divergence
+	real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1],
+            diffused_heats[input2])
+	#print "\t".join([input1, input2, str(real_kldiv)])
+	output_file = output_folder+"/"+input1+":"+input2+".dist.txt"
+	empirical_p, fitted_p = getPVAL(input_heats[input1],
+            input_heats[input2], network, diffuser, output_file)
+	print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
 
 # TODO Run TieDIE on the cohort data, over a range of size-options over a range
 # of subsampled inputs. Store a distribution of heats for each node and each 
@@ -326,16 +325,33 @@ for input1 in input_heats:
 sizes = range(1,10) # the sizes that should be tried
 num_subsamples = 1000 # the number of subsamples on which TieDIE should be run
 
-# node_heats[i,j,k] is the heat at node j in subsample i at size k
-node_heats = numpy.zeros(shape=(num_subsamples, num_nodes, len(sizes)))
-# edge_heats[i,j,k] is the heat at edge j in subsample i at size k
-edge_heats = numpy.zeros(shape=(num_subsamples, num_edges, len(sizes)))
+# TODO consider using arrays instead of dicts for some of these
+# node_heats[i,j] is the heat at node j in subsample i 
+node_heats = numpy.zeros(shape=(num_subsamples, num_nodes))
+# edge_heats[i,j] is the heat at edge j in subsample i
+edge_heats = numpy.zeros(shape=(num_subsamples, num_edges))
+# node_inclusion_fractions[(i,j)] is the fraction of subsamples at size i in
+# which node j was included in the subnetwork
+node_inclusion_fractions = defaultdict(float)
+# edge_inclusion_fractions[(i,j)] is the fraction of subsamples at size i in
+# which edge j was included in the subnetwork
+edge_inclusion_fractions = defaultdict(float)
 
-for s in sizes:
-    for i in range(num_subsamples):
-        # TODO create subsample of size s and run TieDIE on it
-        # then, store node & edge heats in node_heats and edge_heats
+for i in range(num_subsamples):
+    # TODO create subsample and diffuse heat
+    # then, store node & edge heats in node_heats[i,node] and edge_heats[i,edge]
+    for size in sizes:
+        subnet, subnet_nodes, temp, temp = extractSubnetwork(
+                subsample_input_heats, subsample_diffused_heats, size)
 
+        # loop through nodes
+        for node in subnet_nodes:
+            node_inclusion_fractions[(i,node)] += 1/num_subsamples
+        
+        # loop through edges
+        for from_node in subnet.keys():
+            for inter, to_node in subnet[from_node]:
+                edge_inclusion_fractions[(i,from_node,to_node)] += 1/num_subsamples
 
 # TODO Generate patient-specific networks by running TieDIE on each patient's
 # data, setting the input size to parity and doing a simple depth-first
