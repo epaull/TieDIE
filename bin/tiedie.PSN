@@ -327,10 +327,10 @@ sizes = range(1,10) # the sizes that should be tried
 num_subsamples = 1000 # the number of subsamples on which TieDIE should be run
 
 # TODO consider using arrays instead of dicts for some of these
-# node_heats[i,j] is the heat at node j in subsample i 
-node_heats = numpy.zeros(shape=(num_subsamples, num_nodes))
-# edge_heats[i,j] is the heat at edge j in subsample i
-edge_heats = numpy.zeros(shape=(num_subsamples, num_edges))
+# node_heats[i][j] is the diffused heat at node j in subsample i 
+node_heats = []
+# edge_heats[(i,p,q)] is the heat on edge from node p to node q in subsample i
+edge_heats = defaultdict(float)
 # node_inclusion_fractions[(s,n)] is the fraction of subsamples at size s in
 # which node n was included in the subnetwork
 node_inclusion_fractions = defaultdict(float)
@@ -340,11 +340,13 @@ edge_inclusion_fractions = defaultdict(float)
 
 for i in range(num_subsamples):
     # TODO create subsample and store in subsample_input_heats
+    subsample_input_heats = None
 
-    # diffuse the subsample heats:
     subsample_diffused_heats = diffuser.diffuse(subsample_input_heats)
+    node_heats.append(subsample_diffused_heats)
 
-    # TODO store node & edge heats in node_heats[i,node] and edge_heats[i,edge]
+    # TODO store edge heats
+    # how do you get edge heats from the node heats? -ESR
 
     for size in sizes:
         subnet, subnet_nodes, temp, temp = extractSubnetwork(
