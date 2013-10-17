@@ -10,8 +10,10 @@ import time
 TEST_PATHWAY = "test_files/test.tfnet.sif"
 TEST_DATA = "test_files/test.tfnet.data.tab"
 
-P1 = "test_files/test.tfnetbig.sif"
-P1_D = "test.de"
+#P1 = "test_files/test.tfnetbig.sif"
+#P1_D = "test.de"
+P1 = "test_files/PSN/pathway.sif"
+P1_D = "test_files/PSN/expr.ranked.tab"
 #P1_D = "test_files/test.thcaBRAF.vs.RAS.tab"
 
 class TestSequenceFunctions(unittest.TestCase):
@@ -42,7 +44,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		network = parseNet(P1)
 		# signs is empty here
 		scores, signs = parseHeats(P1_D)
-		mrObj = ActivityScores(network, scores, min_hub=100)
+		mrObj = ActivityScores(network, scores, min_hub=3)
 		result = mrObj.scoreCandidates(nperms=100)
 		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
 			#if result > 0.05:
