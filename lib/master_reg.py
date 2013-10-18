@@ -5,6 +5,7 @@ import math
 import random
 from scipy import stats
 import numpy as np
+from distributions import Dist
 
 class ActivityScores: 
 	"""
@@ -277,22 +278,25 @@ class SSActivityScores:
 
 		NET_parents, NET_children = getTFparents(network)
 		tf_candidates = set()
-		for tf in children:
-			if len(children[tf]) >= min_hub:
+		for tf in NET_children:
+			if len(NET_children[tf]) >= min_hub:
 				tf_candidates.add(tf)
 	
 		# get expression activity scores
-		self.sample_expr = getExpression(expression_matrix)
+		self.sample_expr = parseMatrix(expression_matrix)
 		self.sample_activities = getActivityScores(self.sample_expr, tf_candidates, NET_parents)
 	
 		# generate a background distribution based on permuted (real) data, 
 		# then fit to a gaussian distribution 
-		permuted_expr = permuteLabels(sample_expr, 30)	
-		bg_act = getActivityScores(permuted_expr, tf_candidates, NET_parents)
-		bg_stats, bg_activity = fitGeneData(bg_act)
+		permuted_expr = self.permuteLabels(30)	
+		bg_act = self.getActivityScores(permuted_expr, tf_candidates, NET_parents)
+		bg_stats, bg_activity = self.fitGeneData(bg_act)
 	
 		# z-scores based on fitted background data
-		z_scores = getZScores(sample_act, bg_stats, len(tf_candidates))
+		self.z_scores = self.getZScores(bg_stats, len(tf_candidates))
+
+	def getActivities(self):
+		return self.z_scores
 
 	def fitGeneData(self, bg_activity_scores):
 		"""
@@ -318,7 +322,7 @@ class SSActivityScores:
 			
 		return (distributions, activity)
 
-	def getActivityScores(expr_data, binary_threshold, tf_genes, tf_parents): 
+	def getActivityScores(self, expr_data, tf_genes, tf_parents, binary_threshold=0): 
 	
 		# the number of counts per gene, per sample 
 		counts = {}
@@ -361,7 +365,7 @@ class SSActivityScores:
 	
 		return activities
 	
-	def getZScores(scores, stats_summary, num_tests):
+	def getZScores(self, stats_summary, num_tests):
 		"""
 		Return z-scores for activity against the supplied background
 		distribution (summary statistics)	
@@ -375,31 +379,32 @@ class SSActivityScores:
 		
 		activity_z_scores = {}
 	
-		for sample in scores:
+		for sample in self.sample_activities:
 			activity_z_scores[sample] = {}
-			for gene in scores[sample]:
+			for gene in self.sample_activities[sample]:
 	
-				val = scores[sample][gene]
+				val = self.sample_activities[sample][gene]
 				
 				p = stats_summary[gene].getP(val)
 				z = stats_summary[gene].getZ(val)
 				# correct by number of tests: i.e. the number of genes
 				corrected_p = num_tests*p
 	
-				activity_z_scores[sample][gene] = (z, p, corrected_p)
+				#activity_z_scores[sample][gene] = (z, p, corrected_p)
+				activity_z_scores[sample][gene] = z
 	
 		return activity_z_scores
 	
-	def permuteLabels(expr_data, num_permuted_samples, by_gene=False):
+	def permuteLabels(self, num_permuted_samples, by_gene=False):
 	
 		data_by_gene = {}
 		all_data = []
-		for sample in expr_data:
-			for gene in expr_data[sample]:
+		for sample in self.sample_expr:
+			for gene in self.sample_expr[sample]:
 				if gene not in data_by_gene:
 					data_by_gene[gene] = []
-				data_by_gene[gene].append(expr_data[sample][gene])
-				all_data.append(expr_data[sample][gene])
+				data_by_gene[gene].append(self.sample_expr[sample][gene])
+				all_data.append(self.sample_expr[sample][gene])
 	
 		permuted = {}
 		for i in range(0, num_permuted_samples):

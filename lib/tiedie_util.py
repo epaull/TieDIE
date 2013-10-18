@@ -2,6 +2,7 @@
 
 import re, math, os, sys, operator, random
 import networkx as nx
+from collections import defaultdict
 
 def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, network, options):
 	"""
@@ -723,6 +724,11 @@ def connectedSubnets(network, subnet_nodes):
 	G = nx.Graph()
 	G.add_edges_from(list(ugraph))
 	list_of_lists = nx.connected_components(G)	
+		
+	# if no connected components, return None
+	if not list_of_lists:
+		return None
+
 	# get the biggest connected component, add edges between all 
 	validated_nodes = list_of_lists[0]
 	validated_edges = set()
@@ -917,17 +923,13 @@ def getNetworkNodes(network):
 			nodes.add(t)
 	return nodes
 
-def getExpression(file):
+def parseMatrix(file):
 	''' 
-		Sample IDS should be the header line
+		Sample IDS should be the header line. Gene ids are the row names
 		
 		Input:
-			binary_threshold: 'include expression values only if they fall above this range (abs val)
+			binary_threshold: 'include data values only if they fall above this range (abs val)
 			tf_parents: 
-
-		Returns:
-			the inferred activity score (unitless) based on activity of it's downstream targets and the edge types
-			for each (sum of the DE scores*link_type), indexed by sample, then gene id
 			
 	'''
 
@@ -980,7 +982,7 @@ def getTFparents(network):
 	parents = {}
 	children = {}
 	for source in network:
-		for (int, target) in net[source]:
+		for (int, target) in network[source]:
 
 			a_type, edge_type = classifyInteraction(int)
 			act = None

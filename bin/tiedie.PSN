@@ -56,15 +56,9 @@ parser.add_option("--node_ranks",dest="node_ranks",action="store",default=10,typ
 # local imports assume the directory structure from github . 
 sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
 from kernel import Kernel
-from distance import ProbDistance
-from distributions import Dist
-from ppr import PPrDiffuser
-from permute import NetBalancedPermuter
 import tiedie_util
 from tiedie_util import *
-from itertools import combinations
 from master_reg import SSActivityScores
-from concensus import *
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
@@ -152,10 +146,7 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 
 	# get linker heats as a function of input sets
 	linker_heats = None
-	if not opts.product:
-		linker_heats = getMinHeats(int(opts.consider_top), diffused_heats)
-	else:
-		linker_heats = getProduct(diffused_heats)
+	linker_heats = getMinHeats(2, diffused_heats)
 
 	EPSILON = 0.0001
 	linker_cutoff = None
@@ -177,8 +168,8 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 	# USE JUST LINKER GENES
 	active_nodes = set(linkers)
 	ugraph = connectedSubnets(network, active_nodes)
-	if len(ugraph) == 0:
-		raise Exception("Couldn't find any linking graph at this size setting!")
+	if not ugraph or len(ugraph) == 0:
+		return (None, None, None, None)
 	subnet_soln = mapUGraphToNetwork(ugraph, network)
 	
 	subnet_soln_nodes = set() # set of node ID strings contained in the subnet
@@ -189,6 +180,34 @@ def extractSubnetwork(input_heats, diffused_heats, size_control):
 
 	return (subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff)
 
+def thresholdEvents(data, threshold):
+
+	filtered = {}
+	for event in data:
+		if data[event] >= threshold:
+			filtered[event] = data[event]
+
+	return filtered
+
+def normalizeHeats(data):
+	"""
+
+	"""
+	normalized = {}
+	signs = {}
+	sum = 0.0
+	for (event, val) in data.items():
+		sum += abs(val)
+
+	for (event, val) in data.items():
+		sign = "+"
+		if val < 0:
+			sign = "-"
+		normalized[event] = abs(val) / sum
+		signs[event] = sign
+
+	return (normalized, signs)
+	
 # parse network file: use for input validation if heat nodes are not in network
 sys.stderr.write("Parsing Network File..\n")
 network = parseNet(opts.network)
@@ -196,8 +215,6 @@ network_nodes = getNetworkNodes(network)
 
 out_prefix = "."
 output_folder = out_prefix+"/TieDIE.PSN"
-if opts.pagerank:
-	output_folder += "_PAGERANK"
 
 if not os.path.exists(output_folder):
 	os.mkdir(output_folder)
@@ -208,57 +225,42 @@ if not os.path.exists(output_folder):
 # 	page-rank diffused vectors
 #
 
-if opts.pagerank:
-	# use PageRank to diffuse heats: create a diffuser object to perform this step
-	diffuser = PPrDiffuser(network)
+if opts.kernel is not None:
+	sys.stderr.write("Loading Heat Diffusion Kernel..\n")
+	# load a heat diffusion kernel to perform diffusion
+	diffuser = Kernel(opts.kernel)
 else:
-	if opts.kernel is not None:
-		sys.stderr.write("Loading Heat Diffusion Kernel..\n")
-		# load a heat diffusion kernel to perform diffusion
-		diffuser = Kernel(opts.kernel)
-	else:
-		sys.stderr.write("Using SCIPY to compute the matrix exponential, t=0.1...\n")
-		# No kernel supplied: use SCIPY to generate a kernel on the fly, and then use it
-		# for subsequent diffusion operations
-		diffuser = SciPYKernel(opts.network)
+	sys.stderr.write("Using SCIPY to compute the matrix exponential, t=0.1...\n")
+	# No kernel supplied: use SCIPY to generate a kernel on the fly, and then use it
+	# for subsequent diffusion operations
+	diffuser = SciPYKernel(opts.network)
 
- by convention, the first input should be the mutation data
-upstream_heats = input_heats[input_heats.keys()[0]]
+# by convention, the first input should be the mutation data
+sample_mut = parseMatrix(opts.p_mut)
 
-# do a full TieDIE run: save heat values
-# write the cytoscape output file
-print "Running TieDIE with Standard Settings..."
-std_options = copy.copy(options)
-std_options['size'] = 1.0
-up_heats_diffused = diffuser.diffuse(upstream_heats, reverse=False)
-down_heats_diffused = diffuser.diffuse(tfs_heats, reverse=True)
-subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = tiedie_util.extractSubnetwork(upstream_heats, tfs_heats, up_heats_diffused, down_heats_diffused, network, std_options)
-writeNAfile(output_folder+"/heats.NA", linker_scores, "LinkerHeats")
-writeHEATS(output_folder+"/heats.tab", linker_scores)
-print "done"
+# infer activity scores from the TF edges
+ssAct = SSActivityScores(network, opts.p_expr, opts.min_hub)
+sample_activities = ssAct.getActivities()
 
+# generate a TieDIE network for each sample 
+for sample_id in sample_mut:
 
-# get statistics--nodes and edges
-print "Generating concensus TieDIE networks..."
-cNet = ConcensusNetwork(network, diffuser)
-cNet.generate(upstream_heats, tfs_heats, samples, rate, options)
-edge_frequencies, node_frequencies, node_heat_distributions = cNet.getStats()
+	mutation_events = thresholdEvents(sample_mut[sample_id], 1)
+	mut_heats, mut_signs = normalizeHeats(mutation_events)
+	# hardcoded for now: z = 1.5
+	tf_events = thresholdEvents(sample_activities[sample_id], 0.5)
+	
+	tf_heats, tf_signs = normalizeHeats(tf_events)
 
-# write out edge/node fractions
-edge_fh = open(output_folder+"/edge_frequencies.txt", 'w')
-node_fh = open(output_folder+"/node_frequencies.txt", 'w')
-node_heats = open(output_folder+"/node_heats.txt", 'w')
-for edge in edge_frequencies:
-	edge_fh.write("\t".join(edge)+"\t"+str(edge_frequencies[edge])+"\n")
-edge_fh.close()
-for node in node_frequencies:
-	node_fh.write(node+"\t"+str(node_frequencies[node])+"\n")
-node_fh.close()
-for node in node_heat_distributions:
-	node_heats.write(node+"\t"+"\t".join([str(v) for v in node_heat_distributions[node]])+"\n")
-node_heats.close()
-print "done"
-
-# TODO Generate patient-specific networks by running TieDIE on each patient's
-# data, setting the input size to parity and doing a simple depth-first
-# traversal from mutations to TFs. Store each network in a file.
+	input_heats = {}
+	diffused_heats = {}
+	input_heats['up'] = mut_heats		
+	input_heats['down'] = tf_heats		
+	diffused_heats['up'] = diffuser.diffuse(mut_heats)
+	diffused_heats['down'] = diffuser.diffuse(tf_heats)
+	subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff = extractSubnetwork(input_heats, diffused_heats, 1.0)
+	if subnet_soln is None:
+		print "No network found for sample:"+sample_id
+		continue	
+	print "Writing network for sample "+sample_id
+	writeNetwork(subnet_soln, output_folder+"/"+sample_id+".sif")
