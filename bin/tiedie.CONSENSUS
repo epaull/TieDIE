@@ -70,14 +70,6 @@ if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
 	from kernel_scipy import SciPYKernel
 
-def min(vals):
-	min = vals[0]
-	for v in vals:
-		if v < min:
-			min = v
-
-	return min
-
 # NOTE should all these functions be moved to a file in lib, as they currently
 # appear in multiple files in bin? --ESR
 def getProduct(diffused):
