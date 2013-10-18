@@ -873,6 +873,28 @@ def writeNAfile(file_name, hash_values, attr_name):
 
 	fh.close()
 
+def writeHEATS(file_name, hash_values):
+	"""
+	Write out a node-attribute file. Include the header 
+	attr_name, and use the supplied hash values. 
+	"""
+	fh = None
+	try:
+		fh = open(file_name, 'w')	
+	except:
+		raise Exception("Error: couldn't open output NA file for writing:"+file_name)
+
+	for key in hash_values:
+		# check data type: hash values should be numbers for .NA file
+		try:
+			float(hash_values[key])
+		except:
+			raise Exception("Error: bad input value")
+			
+		fh.write(key+"\t"+str(hash_values[key])+"\n")
+
+	fh.close()
+
 def sampleHeats(heats):
 
 	ss = int(len(heats)*0.8)
