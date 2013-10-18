@@ -5,7 +5,7 @@ import random
 from collections import defaultdict
 import copy
 
-class ConcensusNetwork:
+class ConsensusNetwork:
 
 	def __init__(self, base_network, diffuser):
 

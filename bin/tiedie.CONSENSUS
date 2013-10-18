@@ -64,7 +64,7 @@ import tiedie_util
 from tiedie_util import *
 from itertools import combinations
 from master_reg import ActivityScores
-from concensus import *
+from consensus import *
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
@@ -397,8 +397,8 @@ print "done"
 
 
 # get statistics--nodes and edges
-print "Generating concensus TieDIE networks..."
-cNet = ConcensusNetwork(network, diffuser)
+print "Generating consensus TieDIE networks..."
+cNet = ConsensusNetwork(network, diffuser)
 cNet.generate(upstream_heats, tfs_heats, samples, rate, options)
 edge_frequencies, node_frequencies, node_heat_distributions = cNet.getStats()
 
