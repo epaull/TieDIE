@@ -67,6 +67,7 @@ from permute import NetBalancedPermuter
 from tiedie_util import *
 from itertools import combinations
 from master_reg import ActivityScores
+from concensus import *
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
@@ -302,10 +303,10 @@ for file in input_heats:
 	diffused_heats[file] = diffuser.diffuse(input_heats[file])
 
 tfs_heats = None
+# Run Master Regulator analysis on the differential expression list, if
+# supplied. Find master regulators and add them to the input set list. Save the
+# list of master-regulators in a file and continue with the analysis. 
 if opts.d_expr:
-	# Run Master Regulator analysis on the differential expression list, if
-	# supplied. Find master regulators and add them to the input set list. Save the
-	# list of master-regulators in a file and continue with the analysis. 
 	scores, signs = parseHeats(opts.d_expr)
 	mrObj = ActivityScores(network, scores, min_hub=opts.min_hub)
 	# perform 1000 random permutations of the data to get significance scores for each
@@ -368,49 +369,41 @@ if tfs_heats:
 		print "\t".join([input, "tfs", str(fitted_p), str(empirical_p)])
 				
 
-# TODO Run TieDIE on the cohort data, over a range of size-options over a range
+# Run TieDIE on the cohort data, over a range of size-options over a range
 # of subsampled inputs. Store a distribution of heats for each node and each 
 # edge over subsampling, and the inclusion fractions over the range of size
 # options. Save this. This part is for Ed to do.
 
-# TODO un-hardcode these variables
-sizes = range(1,10) # the sizes that should be tried
-num_subsamples = 1000 # the number of subsamples on which TieDIE should be run
 
-# TODO consider using arrays instead of dicts for some of these
-# node_heats[i][j] is the diffused heat at node j in subsample i 
-node_heats = []
-# edge_heats[(i,p,q)] is the heat on edge from node p to node q in subsample i
-edge_heats = defaultdict(float)
-# node_inclusion_fractions[(s,n)] is the fraction of subsamples at size s in
-# which node n was included in the subnetwork
-node_inclusion_fractions = defaultdict(float)
-# edge_inclusion_fractions[(s,p,q)] is the fraction of subsamples at size s in
-# which the edge from node p to node q was included in the subnetwork
-edge_inclusion_fractions = defaultdict(float)
+# subsample both upstream/downstream inputs	
+options = {}
+options['subsample_which'] = "u"
+options['size'] = [i/2.0 for i in range(1,10)]
+options['network_file'] = opts.network
+samples = 100
+rate = 0.85
 
-for i in range(num_subsamples):
-    # TODO create subsample and store in subsample_input_heats
-    subsample_input_heats = None
+# by convention, the first input should be the mutation data
+upstream_heats = input_heats[input_heats.keys()[0]]
 
-    subsample_diffused_heats = diffuser.diffuse(subsample_input_heats)
-    node_heats.append(subsample_diffused_heats)
+# get statistics--nodes and edges
+cNet = ConcensusNetwork(network, diffuser)
+cNet.generate(upstream_heats, tfs_heats, samples, rate, options)
+edge_frequencies, node_frequencies, node_heat_distributions = cNet.getStats()
 
-    # TODO store edge heats
-    # how do you get edge heats from the node heats? -ESR
-
-    for size in sizes:
-        subnet, subnet_nodes, temp, temp = extractSubnetwork(
-                subsample_input_heats, subsample_diffused_heats, size)
-
-        # add a fraction to all nodes appearing in this subnetwork
-        for node in subnet_nodes:
-            node_inclusion_fractions[(size,node)] += 1.0/num_subsamples
-        
-        # add a fraction to all edges appearing in this subnetwork
-        for from_node, (inter, to_node) in subnet.iteritems():
-            edge_inclusion_fractions[(size,from_node,to_node)] +=\
-                    1.0/num_subsamples
+# write out edge/node fractions
+edge_fh = open(output_folder+"/edge_frequencies.txt", 'w')
+node_fh = open(output_folder+"/node_frequencies.txt", 'w')
+node_heats = open(output_folder+"/node_heats.txt", 'w')
+for edge in edge_frequencies:
+	edge_fh.write("\t".join(edge)+"\t"+str(edge_frequencies[edge])+"\n")
+edge_fh.close()
+for node in node_frequencies:
+	node_fh.write(node+"\t"+str(node_frequencies[node])+"\n")
+node_fh.close()
+for node in node_heat_distributions:
+	node_heats.write(node+"\t"+"\t".join([str(v) for v in node_heat_distributions[node]])+"\n")
+node_heats.close()
 
 # TODO Generate patient-specific networks by running TieDIE on each patient's
 # data, setting the input size to parity and doing a simple depth-first

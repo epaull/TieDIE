@@ -3,6 +3,7 @@
 from tiedie_util import *
 import random
 from collections import defaultdict
+import copy
 
 class ConcensusNetwork:
 
@@ -11,6 +12,7 @@ class ConcensusNetwork:
 		# store nodes and edge counts
 		self.nodes = defaultdict(int)
 		self.edges = defaultdict(int)
+		self.node_heats = defaultdict(list)
 		# number of concensus networks
 		self.data_points = 0
 
@@ -19,7 +21,9 @@ class ConcensusNetwork:
 
 	def generate(self, input_set1, input_set2, rounds, sample_rate, options):
 
-		self.num_rounds = rounds
+		# edges/nodes will be counted for each data subsample, and each 
+		# size-cutoff option within those subsampled networks
+		self.num_rounds = rounds*len(options['size'])
 		subsample_set = options['subsample_which']
 
 		for i in range(0, rounds):
@@ -49,18 +53,40 @@ class ConcensusNetwork:
 			diff_subset1 = self.diffuser.diffuse(subset1, reverse=False)
 			diff_subset2 = self.diffuser.diffuse(subset2, reverse=True)
 
-			subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = extractSubnetwork(subset1, subset2, diff_subset1, diff_subset2, self.base_network, options)
+			size_ranges = options['size']
+			# copy to modify size options
+			tiedie_opts = copy.copy(options)
+			tiedie_opts['size'] = None
 	
-			# count each additional edge, and node	
-			for s in subnet_soln:
-				for (i, t) in subnet_soln[s]:
-					self.edges[ (s, i, t) ] += 1
+			first_size = True
+			for network_size in size_ranges:
+				# extract network at this size cutoff
+				# FIXME: this is quite inefficient, as the algorithm will repeat the same steps to find a 
+				# proper heat-cutoff in each iteration. May be worth some re-engineering in the future. 
+				tiedie_opts['size'] = network_size
+				subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = \
+					extractSubnetwork(subset1, subset2, diff_subset1, diff_subset2, self.base_network, tiedie_opts)
 
-			for n in subnet_soln_nodes:
-				self.nodes[n] += 1	
-
-	def getFractions(self):
+				# on the first round only: store node heats to generate distribution over the outer loop
+				if first_size:
+					first_size = False
+					for (node, heat) in linker_scores.items():
+						self.node_heats[node].append(heat)
 	
+				# count each additional edge, and node	
+				for s in subnet_soln:
+					for (i, t) in subnet_soln[s]:
+						self.edges[ (s, i, t) ] += 1
+
+				for n in subnet_soln_nodes:
+					self.nodes[n] += 1	
+
+	def getStats(self):
+		"""
+			Return frequencies for edges, nodes, and 
+			also a heat distribution over subsampled inputs for each node in the network
+			(a dictionary of lists)
+		"""	
 		edge_fractions = defaultdict(float)
 		node_fractions = defaultdict(float)
 
@@ -70,5 +96,5 @@ class ConcensusNetwork:
 		for (node, count) in self.nodes.items():
 			node_fractions[node] = count / float(self.num_rounds)
 
-		return (edge_fractions, node_fractions)
+		return (edge_fractions, node_fractions, self.node_heats)
 

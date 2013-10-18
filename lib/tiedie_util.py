@@ -21,7 +21,9 @@ def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffus
 	"""
 
 	size_control = options['size']
-	set_alpha = options['alpha']
+	set_alpha = False
+	if 'alpha' in options:
+		set_alpha = options['alpha']
 
 	linker_cutoff = None
 	linker_nodes = None
@@ -38,8 +40,9 @@ def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffus
 	# 'linker' nodes and the scores for each, after we threshold at the cutoff
 	linker_nodes, linker_scores = filterLinkers(up_heats_diffused, down_heats_diffused, linker_cutoff)
 
+
 	ugraph = None
-	if options['pcst']:
+	if 'pcst' in options and options['pcst']:
 		# optional: use the Prize Collecting Steiner Tree formulation to connect the network
 		ugraph = runPCST(up_heats, down_heats, linker_nodes, options['network_file'])
 	else:
@@ -426,6 +429,10 @@ def findLinkerCutoff(source_set, target_set, up_heat_diffused, down_heat_diffuse
 		except:
 			return (0,0)
 
+	# boundary condition control
+	if cutoff < 0:
+		raise Exception("Error: reached boundary condition: check inputs")
+
 	return (cutoff, score)
 
 def findLinkerCutoffSingle(source_set, up_heat_diffused, size):
@@ -619,9 +626,9 @@ def filterLinkers(up_heats_diffused, down_heats_diffused, cutoff):
 		diffused heats for each set, and the numeric cutoff value
 
 	Returns:
-		a list of genes above the cutoff, a hash of minimum heat values		
+		a list of genes above the cutoff, a hash of minimum heat values for all genes in the network
 	"""
-	linkers = {}
+	tiedie_heats = {}
 	filtered = []
 	if down_heats_diffused is None:
 		# trivially: if this is a single list of diffused values, just return it
@@ -632,11 +639,11 @@ def filterLinkers(up_heats_diffused, down_heats_diffused, cutoff):
 			# it doesn't make the cut if it's not in both sets
 			continue
 		min_heat = min(up_heats_diffused[node], down_heats_diffused[node])
-		linkers[node] = min_heat
+		tiedie_heats[node] = min_heat
 		if min_heat > cutoff:
 			filtered.append(node)
 
-	return (filtered, linkers)
+	return (filtered, tiedie_heats)
 
 def mapUGraphToNetwork(edge_list, network):
 	"""
