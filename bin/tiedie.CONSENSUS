@@ -70,8 +70,8 @@ if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
 	from kernel_scipy import SciPYKernel
 
-# NOTE should all these functions be moved to a file in lib, as they currently
-# appear in multiple files in bin? --ESR
+# NOTE should some of these functions be moved to a file in lib, as they
+# currently appear in multiple files in bin? --ESR
 def getProduct(diffused):
 	gene_scores = {}
 	for file in diffused:
@@ -237,6 +237,7 @@ def getPVAL(setA, setB, network, diffuser, writeToFile=None):
 	return (empirical_pval, gauss_fit_pval)
 
 # Set the number of random permutations for the null-model test
+# FIXME this functionality is built in to argparse
 PERMUTE = None
 try:
 	PERMUTE = int(opts.permute)
@@ -382,11 +383,12 @@ std_options = copy.copy(options)
 std_options['size'] = 1.0
 up_heats_diffused = diffuser.diffuse(upstream_heats, reverse=False)
 down_heats_diffused = diffuser.diffuse(tfs_heats, reverse=True)
-subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = tiedie_util.extractSubnetwork(upstream_heats, tfs_heats, up_heats_diffused, down_heats_diffused, network, std_options)
+subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = \
+        tiedie_util.extractSubnetwork(upstream_heats, tfs_heats,
+                up_heats_diffused, down_heats_diffused, network, std_options)
 writeNAfile(output_folder+"/heats.NA", linker_scores, "LinkerHeats")
 writeHEATS(output_folder+"/heats.tab", linker_scores)
 print "done"
-
 
 # get statistics--nodes and edges
 print "Generating consensus TieDIE networks..."

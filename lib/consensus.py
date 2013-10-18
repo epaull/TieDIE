@@ -6,8 +6,10 @@ from collections import defaultdict
 import copy
 
 class ConsensusNetwork:
+    # TODO write docstring
 
 	def __init__(self, base_network, diffuser):
+        # TODO write docstring
 
 		# store nodes and edge counts
 		self.nodes = defaultdict(int)
@@ -20,6 +22,7 @@ class ConsensusNetwork:
 		self.diffuser = diffuser
 
 	def generate(self, input_set1, input_set2, rounds, sample_rate, options):
+        # TODO write docstring
 
 		# edges/nodes will be counted for each data subsample, and each 
 		# size-cutoff option within those subsampled networks
@@ -48,7 +51,6 @@ class ConsensusNetwork:
 			else:
 				subset2 = input_set2
 
-				
 			# diffuse subsamples
 			diff_subset1 = self.diffuser.diffuse(subset1, reverse=False)
 			diff_subset2 = self.diffuser.diffuse(subset2, reverse=True)
@@ -83,9 +85,18 @@ class ConsensusNetwork:
 
 	def getStats(self):
 		"""
-			Return frequencies for edges, nodes, and 
-			also a heat distribution over subsampled inputs for each node in the network
-			(a dictionary of lists)
+		Return statistics pertaining to the consensus network.
+        
+        Returns: a tuple containing 3 fields:
+        0. a dictionary of edge frequencies where edge_freqs[('from_node',
+           'interaction', 'to_node'] is the frequency with which that edge
+           appeared in the subsample diffusions
+        1. a dictionary of node frequencies where node_freqs['node'] is the
+           fraction of the time in which that node appeared in the resulting
+           networks from subsample diffusions
+		2. a heat distribution over subsampled inputs for each node in the
+           network as a dictionary of lists where heat['node'][i] is the
+           final heat at 'node' in subsample i
 		"""	
 		edge_fractions = defaultdict(float)
 		node_fractions = defaultdict(float)
