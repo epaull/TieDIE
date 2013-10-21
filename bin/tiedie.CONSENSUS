@@ -297,35 +297,7 @@ tfs_heats = None
 # supplied. Find master regulators and add them to the input set list. Save the
 # list of master-regulators in a file and continue with the analysis. 
 if opts.d_expr:
-	scores, signs = parseHeats(opts.d_expr)
-	mrObj = ActivityScores(network, scores, min_hub=opts.min_hub)
-	# perform 1000 random permutations of the data to get significance scores for each
-	result = mrObj.scoreCandidates(nperms=1000)
-	print result
-	tfs_heats = {}
-	for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
-		print result
-		# filter on p-value
-		if result[1] > 0.05:
-			continue
-		tfs_heats[tf] = float(result[0])
-
-	# normalize input heats
-	total = 0
-	for input in input_heats:
-		for (g, h) in input_heats[input].items():
-			total += abs(float(h))
-		break
-
-	t_total = 0
-	for (g, h) in tfs_heats.items():
-		t_total += abs(float(h))
-
-	print tfs_heats
-	norm_factor = total/t_total
-
-	for (g, h) in tfs_heats.items():
-		tfs_heats[g] = h*norm_factor
+	tfs_heats = master_reg.findRegulators(opts.d_expr)
 
 	# output inferred tf heats:
 	fh = open(output_folder+"/tfs.inferred", 'w')

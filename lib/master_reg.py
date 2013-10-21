@@ -49,6 +49,46 @@ class ActivityScores:
 		self.generateCategories(scores)
 
 	@staticmethod
+	def findRegulators(de_file, min_hub=10, nperms=1000):
+		"""
+		Input:
+			file with differential expression (or otherwise scored) values 
+		
+		Returns:
+			A hash of master regulators, with signed, weighted scores normalized
+			so that absolute values sum to 1.
+		"""
+		scores, signs = parseHeats(de_file)
+		mrObj = ActivityScores(network, scores, min_hub=min_hub)
+		# perform 1000 random permutations of the data to get significance scores for each
+		result = mrObj.scoreCandidates(nperms)
+		tfs_heats = {}
+		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
+			# filter on p-value
+			if result[1] > 0.05:
+				continue
+			tfs_heats[tf] = float(result[0])
+	
+		# normalize input heats
+		total = 0
+		for input in input_heats:
+			for (g, h) in input_heats[input].items():
+				total += abs(float(h))
+			break
+	
+		t_total = 0
+		for (g, h) in tfs_heats.items():
+			t_total += abs(float(h))
+
+		# normalize abs values to sum to 1	
+		norm_factor = total/t_total
+	
+		for (g, h) in tfs_heats.items():
+			tfs_heats[g] = h*norm_factor
+
+		return tfs_heats
+
+	@staticmethod
 	def getPval(real, background):
 
 		count = 0.0
