@@ -247,6 +247,7 @@ tiedie_heat_scores = None
 if opts.node_ranks:
 	tiedie_heat_scores, signs = parseHeats(opts.node_ranks)
 
+stats = open(output_folder+"/network.stats.txt", 'w')
 # generate a TieDIE network for each sample 
 for sample_id in sample_mut:
 
@@ -271,6 +272,6 @@ for sample_id in sample_mut:
 	writeNetwork(subnet_soln, output_folder+"/"+sample_id+".sif")
 
 	ES_score, pval = ActivityScores.getEnrichmentScore(network, tiedie_heat_scores, subnet_soln_nodes)
-	print ES_score
-	print pval
-	
+	stats.write("\t".join([sample_id, str(ES_score), str(pval)])+"\n")
+
+stats.close()

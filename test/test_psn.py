@@ -47,6 +47,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			" -m "+"3"
 		print "Running command:"
 		print cmd
+		os.system(cmd)
 
 
 if __name__ == '__main__':
