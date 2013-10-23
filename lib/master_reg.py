@@ -50,7 +50,7 @@ class ActivityScores:
 
 	@staticmethod
 	def	getEnrichmentScore(network, scores, test_set, nperms=1000):
-		mrObj = ActivityScores(network, scores, min_hub=min_hub)
+		mrObj = ActivityScores(network, scores, min_hub=10)
 
 		# index all network nodes
 		network_nodes = set()
@@ -61,7 +61,6 @@ class ActivityScores:
 
 		# generate GSEA score
 		score = mrObj.scoreReg(test_set, set())
-
 		# perform random permutations, get background scores
 		no_gte = 0.0
 		for i in range(0, nperms):
@@ -103,7 +102,7 @@ class ActivityScores:
 			t_total += abs(float(h))
 
 		# normalize abs values to sum to 1	
-		norm_factor = 1.0/t_total
+		norm_factor = 1000.0/t_total
 	
 		for (g, h) in tfs_heats.items():
 			tfs_heats[g] = h*norm_factor

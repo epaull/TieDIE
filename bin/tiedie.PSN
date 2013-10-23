@@ -47,7 +47,7 @@ Matrix of Mutation Calls, per Patient")
 parser.add_option("-m","--min_hub",dest="min_hub",action="store",default=10,type="int",help=\
 "minimum number of genes in regulon to consider a TF")
 # optional: ranked list of heats from a TieDIE concensus network: compute GSEA enrichment for these
-parser.add_option("--node_ranks",dest="node_ranks",action="store",default=10,type="int",help=\
+parser.add_option("--node_ranks",dest="node_ranks",action="store",default=None,type="string",help=\
 "minimum number of genes in regulon to consider a TF")
 
 # optional inputs here:
@@ -271,6 +271,6 @@ for sample_id in sample_mut:
 	writeNetwork(subnet_soln, output_folder+"/"+sample_id+".sif")
 
 	ES_score, pval = ActivityScores.getEnrichmentScore(network, tiedie_heat_scores, subnet_soln_nodes)
-	print ES_scores
+	print ES_score
 	print pval
 	

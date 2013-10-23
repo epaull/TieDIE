@@ -292,7 +292,7 @@ for input in input_heats:
 	total = 0.0
 	for (g, h) in input_heats[input].items():
 		total += abs(float(h))
-	norm_const = 1.0/total
+	norm_const = 1000.0/total
 	# normalize	in place
 	for (g, h) in input_heats[input].items():
 		input_heats[input][g] = h*norm_const
