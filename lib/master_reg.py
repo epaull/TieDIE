@@ -49,7 +49,32 @@ class ActivityScores:
 		self.generateCategories(scores)
 
 	@staticmethod
-	def findRegulators(de_file, min_hub=10, nperms=1000):
+	def	getEnrichmentScore(network, scores, test_set, nperms=1000):
+		mrObj = ActivityScores(network, scores, min_hub=min_hub)
+
+		# index all network nodes
+		network_nodes = set()
+		for s in network:
+			network_nodes.add(s)
+			for (i, t) in network[s]:
+				network_nodes.add(t)
+
+		# generate GSEA score
+		score = mrObj.scoreReg(test_set, set())
+
+		# perform random permutations, get background scores
+		no_gte = 0.0
+		for i in range(0, nperms):
+			permuted_set = random.sample(network_nodes, len(test_set))
+			p_score = mrObj.scoreReg(permuted_set, set())
+			if p_score >= score:
+				no_gte += 1.0
+
+		pval = (no_gte+1)/(nperms+1)
+		return (score, pval)
+
+	@staticmethod
+	def findRegulators(network, de_file, min_hub=10, nperms=1000):
 		"""
 		Input:
 			file with differential expression (or otherwise scored) values 
@@ -64,24 +89,21 @@ class ActivityScores:
 		result = mrObj.scoreCandidates(nperms)
 		tfs_heats = {}
 		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
+			print result
 			# filter on p-value
 			if result[1] > 0.05:
 				continue
 			tfs_heats[tf] = float(result[0])
-	
-		# normalize input heats
-		total = 0
-		for input in input_heats:
-			for (g, h) in input_heats[input].items():
-				total += abs(float(h))
-			break
+
+		if len(tfs_heats) == 0:
+			raise Exception("No Significant Regulators Active!")
 	
 		t_total = 0
 		for (g, h) in tfs_heats.items():
 			t_total += abs(float(h))
 
 		# normalize abs values to sum to 1	
-		norm_factor = total/t_total
+		norm_factor = 1.0/t_total
 	
 		for (g, h) in tfs_heats.items():
 			tfs_heats[g] = h*norm_factor

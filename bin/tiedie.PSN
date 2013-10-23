@@ -58,7 +58,7 @@ sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
 from kernel import Kernel
 import tiedie_util
 from tiedie_util import *
-from master_reg import SSActivityScores
+from master_reg import ActivityScores, SSActivityScores
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
@@ -242,6 +242,11 @@ sample_mut = parseMatrix(opts.p_mut)
 ssAct = SSActivityScores(network, opts.p_expr, opts.min_hub)
 sample_activities = ssAct.getActivities()
 
+# heat scores from the TieDIE Consensus network
+tiedie_heat_scores = None
+if opts.node_ranks:
+	tiedie_heat_scores, signs = parseHeats(opts.node_ranks)
+
 # generate a TieDIE network for each sample 
 for sample_id in sample_mut:
 
@@ -264,3 +269,8 @@ for sample_id in sample_mut:
 		continue	
 	print "Writing network for sample "+sample_id
 	writeNetwork(subnet_soln, output_folder+"/"+sample_id+".sif")
+
+	ES_score, pval = ActivityScores.getEnrichmentScore(network, tiedie_heat_scores, subnet_soln_nodes)
+	print ES_scores
+	print pval
+	

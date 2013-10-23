@@ -287,6 +287,16 @@ else:
 		# for subsequent diffusion operations
 		diffuser = SciPYKernel(opts.network)
 
+# normalize input heats to sum to 1
+for input in input_heats:
+	total = 0.0
+	for (g, h) in input_heats[input].items():
+		total += abs(float(h))
+	norm_const = 1.0/total
+	# normalize	in place
+	for (g, h) in input_heats[input].items():
+		input_heats[input][g] = h*norm_const
+
 print "Diffusing Heats..."
 diffused_heats = {}
 for file in input_heats:
@@ -297,7 +307,7 @@ tfs_heats = None
 # supplied. Find master regulators and add them to the input set list. Save the
 # list of master-regulators in a file and continue with the analysis. 
 if opts.d_expr:
-	tfs_heats = master_reg.findRegulators(opts.d_expr)
+	tfs_heats = ActivityScores.findRegulators(network, opts.d_expr, min_hub=opts.min_hub)
 
 	# output inferred tf heats:
 	fh = open(output_folder+"/tfs.inferred", 'w')
