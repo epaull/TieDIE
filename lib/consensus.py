@@ -66,8 +66,12 @@ class ConsensusNetwork:
 				# FIXME: this is quite inefficient, as the algorithm will repeat the same steps to find a 
 				# proper heat-cutoff in each iteration. May be worth some re-engineering in the future. 
 				tiedie_opts['size'] = network_size
-				subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = \
-					extractSubnetwork(subset1, subset2, diff_subset1, diff_subset2, self.base_network, tiedie_opts)
+				try:
+					subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = \
+						extractSubnetwork(subset1, subset2, diff_subset1, diff_subset2, self.base_network, tiedie_opts)
+				except:
+					# just penalize with zero counts if we can't find a subnetwork at all
+					continue
 
 				# on the first round only: store node heats to generate distribution over the outer loop
 				if first_size:
@@ -75,7 +79,6 @@ class ConsensusNetwork:
 					for (node, heat) in linker_scores.items():
 						self.node_heats[node].append(heat)
 	
-				# count each additional edge, and node	
 				for s in subnet_soln:
 					for (i, t) in subnet_soln[s]:
 						self.edges[ (s, i, t) ] += 1

@@ -29,8 +29,8 @@ class Dist:
 			Output:
 				A p-value based on that distribution	
 		"""
-		EPSILON = 0.001
-		mean, sd = norm.fit([log(v) for v in vector])		
+		EPSILON = 0.00001
+		mean, sd = norm.fit([log(v+EPSILON) for v in vector])		
 		# just the cdf: this value should be smaller 
 		p_val = norm.cdf(log(test_value+EPSILON), loc=mean,scale=sd)		
 

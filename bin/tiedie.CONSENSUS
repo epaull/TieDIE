@@ -318,6 +318,12 @@ if opts.d_expr:
 	# diffuse heats from these tfs
 	diffused_heats["tfs"] = diffuser.diffuse(tfs_heats)
 
+else:
+	# otherwise use the last element
+	tf_input = args[-1]
+	tfs_heats = input_heats[tf_input]
+	diffused_heats["tfs"] = diffused_heats[tf_input]
+
 # compute all pairwise distances, validate the input sets first
 print "Computing pairwise p-values between sets"
 print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
@@ -327,7 +333,7 @@ for input1, input2 in combinations(input_heats, 2):
 	real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1],
             diffused_heats[input2])
 	#print "\t".join([input1, input2, str(real_kldiv)])
-	output_file = output_folder+"/"+input1+":"+input2+".dist.txt"
+	output_file = output_folder+"/"+input1.replace('/', '.')+":"+input2.replace('/','.')+".dist.txt"
 	empirical_p, fitted_p = getPVAL(input_heats[input1],
             input_heats[input2], network, diffuser, output_file)
 	print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
