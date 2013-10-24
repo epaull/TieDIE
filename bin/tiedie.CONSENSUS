@@ -362,7 +362,7 @@ samples = 100
 rate = 0.85
 
 # by convention, the first input should be the mutation data
-upstream_heats = input_heats[input_heats.keys()[0]]
+upstream_heats = input_heats[args[0]]
 
 # do a full TieDIE run: save heat values
 # write the cytoscape output file
