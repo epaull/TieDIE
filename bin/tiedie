@@ -41,7 +41,8 @@ parser.add_option("-p","--permute",dest="permute",action="store",default=50,type
 Number of random permutations performed for significance analysis (default 50)")
 parser.add_option("--pagerank",dest="pagerank",action="store_true",default=False,
 help="Use Personalized PageRank to Diffuse")
-parser.add_option("-o","--output",dest="output",action="store",default="")
+parser.add_option("-o","--output",dest="output",action="store",default=".")
+parser.add_option("-s","--size",dest="size",action="store",default=1.0)
 parser.add_option("-c","--consider",dest="consider_top",action="store",default=3)
 # data specific for patient-specific networks here
 parser.add_option("--d_expr",dest="d_expr",action="store",default=None,type="string",help="\
@@ -61,6 +62,7 @@ from distributions import Dist
 from ppr import PPrDiffuser
 from permute import NetBalancedPermuter
 import tiedie_util
+from linkers import *
 from tiedie_util import *
 from itertools import combinations
 from master_reg import ActivityScores
@@ -142,8 +144,7 @@ for file in args:
 	for gene in input_heats[file]:
 		input_nodes.add(gene)
 
-out_prefix = "."
-output_folder = out_prefix+"/TieDIE"
+output_folder = opts.output+"/TieDIE"
 if opts.pagerank:
 	output_folder += "_PAGERANK"
 
@@ -223,11 +224,11 @@ print "done"
 # do a full TieDIE run: save heat values
 # write the cytoscape output file
 print "Running TieDIE with Standard Settings..."
-std_options = copy.copy(options)
-subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = \
-        tiedie_util.extractSubnetwork(network, input_heats, diffused_heats, 1.0, std_options)
-writeNAfile(output_folder+"/heats.NA", linker_scores, "LinkerHeats")
-writeHEATS(output_folder+"/heats.tab", linker_scores)
+std_options = copy.copy(opts)
+subnet_soln, subnet_soln_nodes, linker_heats, cutoff = \
+        extractSubnetwork(network, input_heats, diffused_heats, opts.size, std_options)
+writeNAfile(output_folder+"/heats.NA", linker_heats, "LinkerHeats")
+writeHEATS(output_folder+"/heats.tab", linker_heats)
 writeNetwork(subnet_soln, output_folder+"/TieDIE.sif")
 print "done"
 

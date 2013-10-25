@@ -40,18 +40,11 @@ class TestSequenceFunctions(unittest.TestCase):
 		print cmd
 		os.system(cmd)
 	
-		output_dir = "test_files/TieDIE.size=1.0/"
-
-		# test report output
-		report_text = self.readFile(output_dir+"report.txt")
-		self.assertEqual(report_text[0].split("\t")[0], "0.625")
-		self.assertEqual(report_text[1].split("\t")[0], "0.5")
-		self.assertEqual(report_text[2], "And 12 connecting nodes")
-		self.assertEqual(report_text[3], "Compactness Score:0.4425")
+		output_dir = "test_files/TieDIE/"
 
 		# file output
 		reg_dir = "test_files/REGRESSION/"
-		self.assertTrue( self.filesEqual(output_dir+"tiedie.sif", reg_dir+"tiedie.sif") )
+		self.assertTrue( self.filesEqual(output_dir+"TieDIE.sif", reg_dir+"TieDIE.sif") )
 		self.assertTrue( self.filesEqual(output_dir+"heats.NA", reg_dir+"heats.NA") )
 		self.assertTrue( self.filesEqual(output_dir+"node.stats", reg_dir+"node.stats") )
 		self.assertTrue( self.filesEqual(output_dir+"tiedie.cn.sif", reg_dir+"tiedie.cn.sif") )
