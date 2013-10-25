@@ -71,6 +71,19 @@ def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 		Output:
 			- spanning network
 			- list of nodes in that network
+
+	>>> input_heats = {'source':{'s1':0.01,'s2':0.5}, 'target':{'e1':0.49}}
+	>>> diffused_heats = {'source':{'s1':0.05,'s2':0.4}, 'target':{'e1':0.4,'t2':0.3,'t1':0.1}}
+	>>> s1 = set()
+	>>> s1.add(('-t>','t1'))
+	>>> s2 = set()
+	>>> s2.add(('-t>','t2'))
+	>>> t2 = set()
+	>>> t2.add(('-t>','e1'))
+	>>> network = {'s1':s1, 's2':s2, 't2':t2}
+	>>> extractSubnetwork(network, input_heats, diffused_heats, 0.25, {})
+	({'s2': set([('-t>', 't2')]), 't2': set([('-t>', 'e1')])}, set(['s2', 't2', 'e1']), {'s2': 0.4, 's1': 0.05, 't2': 0.3, 'e1': 0.4, 't1': 0.1}, 0.2999)
+
 	"""
 
 	linker_cutoff = None
