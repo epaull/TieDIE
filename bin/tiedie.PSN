@@ -118,11 +118,11 @@ stats = open(output_folder+"/network.stats.txt", 'w')
 for sample_id in sample_mut:
 
 	mutation_events = thresholdEvents(sample_mut[sample_id], 1)
-	mut_heats, mut_signs = normalizeHeats(mutation_events)
+	mut_heats = normalizeHeats(mutation_events)
 	# hardcoded for now: z = 1.5
 	tf_events = thresholdEvents(sample_activities[sample_id], 0.5)
 	
-	tf_heats, tf_signs = normalizeHeats(tf_events)
+	tf_heats = normalizeHeats(tf_events)
 
 	input_heats = {}
 	diffused_heats = {}

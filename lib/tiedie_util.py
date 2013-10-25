@@ -423,9 +423,9 @@ def connectedSubnets(network, subnet_nodes):
 	G.add_edges_from(list(ugraph))
 	list_of_lists = nx.connected_components(G)	
 		
-	# if no connected components, return None
+	# if no connected components, return the empty set
 	if not list_of_lists:
-		return None
+		return set()
 
 	# get the biggest connected component, add edges between all 
 	validated_nodes = list_of_lists[0]

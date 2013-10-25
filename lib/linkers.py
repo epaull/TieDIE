@@ -103,7 +103,7 @@ def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 	active_nodes = set(linkers)
 	ugraph = connectedSubnets(network, active_nodes)
 	if len(ugraph) == 0:
-		raise Exception( "Couldn't find any linking graph at this size setting!")
+		sys.stderr.write("Couldn't find any linking graph at this size setting!\n")
 	subnet_soln = mapUGraphToNetwork(ugraph, network)
 	
 	subnet_soln_nodes = set()

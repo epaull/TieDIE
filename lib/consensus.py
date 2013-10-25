@@ -62,14 +62,13 @@ class ConsensusNetwork:
 			for network_size in size_ranges:
 				# FIXME: this is quite inefficient, as the algorithm will repeat the same steps to find a 
 				# proper heat-cutoff in each iteration. May be worth some re-engineering in the future. 
-				#try:
+				try:
 					# extract network at this size cutoff
-				subnet_soln, subnet_soln_nodes, linker_scores, cutoff = \
-					extractSubnetwork(self.base_network, subsampled_inputs, subsampled_diffused, network_size, tiedie_opts)
-				#except Exception, err:
-				#	# just penalize with zero counts if we can't find a subnetwork at all
-				#	sys.stderr.write(Exception.str()+"\t"+str(err)+'\n')
-				#	continue
+					subnet_soln, subnet_soln_nodes, linker_scores, cutoff = \
+						extractSubnetwork(self.base_network, subsampled_inputs, subsampled_diffused, network_size, tiedie_opts)
+				except Exception, err:
+					# just penalize with zero counts if we can't find a subnetwork at all
+					continue
 
 
 				# on the first round only: store node heats to generate distribution over the outer loop

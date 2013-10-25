@@ -14,7 +14,7 @@ TEST_EXPR = "test_files/PSN/expr.data"
 TEST_MUT = "test_files/PSN/mut.data"
 TEST_SOURCE = "test_files/PSN/upstream.input"
 
-GENERATED_HEATS = "TieDIE.CONCENSUS/heats.tab"
+GENERATED_HEATS = "TieDIE/heats.tab"
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -27,7 +27,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def testRUN(self):
 		# build the concensus network first
-		cmd = "../bin/tiedie.CONSENSUS "+\
+		cmd = "../bin/tiedie "+\
 			" -n "+TEST_PATHWAY+\
 			" -k "+TEST_KERNEL+\
 			" --d_expr "+TEST_DE+\
