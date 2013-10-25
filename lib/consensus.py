@@ -1,6 +1,7 @@
 #!/usr/bin/env	python2.7
 
 from tiedie_util import *
+from linkers import *
 import random
 from collections import defaultdict
 import copy
@@ -21,8 +22,13 @@ class ConsensusNetwork:
 		self.base_network = base_network
 		self.diffuser = diffuser
 
-	def generate(self, input_set1, input_set2, rounds, sample_rate, options):
+	def generate(self, input_sets, rounds, sample_rate, options):
         # TODO write docstring
+			
+		size_ranges = options['size']
+		# copy to modify size options
+		tiedie_opts = copy.copy(options)
+		tiedie_opts['size'] = None
 
 		# edges/nodes will be counted for each data subsample, and each 
 		# size-cutoff option within those subsampled networks
@@ -32,46 +38,39 @@ class ConsensusNetwork:
 		for i in range(0, rounds):
 
 			# generate random subsamples of the input sets
-			subset1 = {}
-			subset2 = {}
+			subsampled_inputs = {}
+			subsampled_diffused = {}
 
-			# permute the upstream set unless 'd' is specified
-			if subsample_set != "d":
-				subset1 = {}
-				for key in random.sample(input_set1.keys(), int(sample_rate*len(input_set1))):
-					subset1[key] = input_set1[key]
-			else:
-				subset1 = input_set1
+			for input in input_sets:
 
-			# permute the downstream set unless 'u' is specified
-			if subsample_set != "u":
-				subset2 = {}
-				for key in random.sample(input_set2.keys(), int(sample_rate*len(input_set2))):
-					subset2[key] = input_set2[key]
-			else:
-				subset2 = input_set2
+				input_set = input_sets[input]
+				subsampled_inputs[input] = {}
+			
+				# get a random sample of the inputs, copy to new dictionary
+				RATE = sample_rate
+				# boundary case: obviously we can't subsample a single input, but it's still a valid input...
+				if int(len(input_sets)*RATE) < 1:
+					RATE = 1
+				for key in random.sample(input_set.keys(), int(RATE*len(input_set))):
+					subsampled_inputs[input][key] = input_set[key]
 
-			# diffuse subsamples
-			diff_subset1 = self.diffuser.diffuse(subset1, reverse=False)
-			diff_subset2 = self.diffuser.diffuse(subset2, reverse=True)
+				# diffuse subsamples
+				subsampled_diffused[input] = self.diffuser.diffuse(subsampled_inputs[input], reverse=False)
 
-			size_ranges = options['size']
-			# copy to modify size options
-			tiedie_opts = copy.copy(options)
-			tiedie_opts['size'] = None
-	
+
 			first_size = True
 			for network_size in size_ranges:
-				# extract network at this size cutoff
 				# FIXME: this is quite inefficient, as the algorithm will repeat the same steps to find a 
 				# proper heat-cutoff in each iteration. May be worth some re-engineering in the future. 
-				tiedie_opts['size'] = network_size
-				try:
-					subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = \
-						extractSubnetwork(subset1, subset2, diff_subset1, diff_subset2, self.base_network, tiedie_opts)
-				except:
-					# just penalize with zero counts if we can't find a subnetwork at all
-					continue
+				#try:
+					# extract network at this size cutoff
+				subnet_soln, subnet_soln_nodes, linker_scores, cutoff = \
+					extractSubnetwork(self.base_network, subsampled_inputs, subsampled_diffused, network_size, tiedie_opts)
+				#except Exception, err:
+				#	# just penalize with zero counts if we can't find a subnetwork at all
+				#	sys.stderr.write(Exception.str()+"\t"+str(err)+'\n')
+				#	continue
+
 
 				# on the first round only: store node heats to generate distribution over the outer loop
 				if first_size:

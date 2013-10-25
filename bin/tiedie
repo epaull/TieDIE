@@ -193,6 +193,9 @@ if opts.d_expr:
 		fh.write(g+"\t"+str(h)+"\n")
 	fh.close()
 
+	##
+	## Add inferred heats to the input sets (and diffused sets), which are global variables
+	##
 	input_heats["tfs"] = normalizeHeats(tfs_heats)
 	# diffuse heats from these tfs
 	diffused_heats["tfs"] = diffuser.diffuse(tfs_heats)
@@ -252,7 +255,7 @@ upstream_heats = input_heats[args[0]]
 # get statistics--nodes and edges
 print "Generating consensus TieDIE networks..."
 cNet = ConsensusNetwork(network, diffuser)
-cNet.generate(upstream_heats, tfs_heats, samples, rate, options)
+cNet.generate(input_heats, samples, rate, options)
 edge_frequencies, node_frequencies, node_heat_distributions = cNet.getStats()
 
 # write out edge/node fractions

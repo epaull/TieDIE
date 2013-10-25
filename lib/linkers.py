@@ -78,7 +78,9 @@ def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 	linker_scores = None
 
 	# get linker heats as a function of input sets
-	linker_heats = getMinHeats(int(opts.consider_top), diffused_heats)
+	consider = len(input_heats)
+
+	linker_heats = getMinHeats(consider, diffused_heats)
 	#linker_heats = getProduct(diffused_heats)
 
 	EPSILON = 0.0001

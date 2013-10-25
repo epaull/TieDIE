@@ -46,11 +46,12 @@ class TestSequenceFunctions(unittest.TestCase):
 		reg_dir = "test_files/REGRESSION/"
 		self.assertTrue( self.filesEqual(output_dir+"TieDIE.sif", reg_dir+"TieDIE.sif") )
 		self.assertTrue( self.filesEqual(output_dir+"heats.NA", reg_dir+"heats.NA") )
-		self.assertTrue( self.filesEqual(output_dir+"node.stats", reg_dir+"node.stats") )
-		self.assertTrue( self.filesEqual(output_dir+"tiedie.cn.sif", reg_dir+"tiedie.cn.sif") )
-		self.assertTrue( self.filesEqual(output_dir+"score.txt", reg_dir+"score.txt") )
+		self.assertTrue( self.filesEqual(output_dir+"heats.tab", reg_dir+"heats.tab") )
+		#self.assertTrue( self.filesEqual(output_dir+"node_heats.txt", reg_dir+"node_heats.txt") )
+		#self.assertTrue( self.filesEqual(output_dir+"edge_frequencies.txt", reg_dir+"edge_frequencies.txt") )
+		#self.assertTrue( self.filesEqual(output_dir+"node_frequencies.txt", reg_dir+"node_frequencies.txt") )
 	
-		self.cleanup(output_dir)
+		#self.cleanup(output_dir)
 
 if __name__ == '__main__':
     unittest.main()
