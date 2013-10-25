@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 ###
 ### MakeKernel: Generate a heat diffusion kernel from .sif file

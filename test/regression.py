@@ -36,9 +36,11 @@ class TestSequenceFunctions(unittest.TestCase):
 		os.system("rm -rf "+out_dir)
 
 	def testRUN(self):
-		os.system("../bin/tiedie -n "+TEST_PATHWAY+" -k "+TEST_KERNEL+" -u "+TEST_SOURCE+" -d "+TEST_TARGET+" -s 1.0")
+		cmd = "../bin/tiedie -n "+TEST_PATHWAY+" -k "+TEST_KERNEL+" "+TEST_SOURCE+" "+TEST_TARGET+" -s 1.0 --output test_files"
+		print cmd
+		os.system(cmd)
 	
-		output_dir = "test_files/TieDIE_RESULT_size=1.0_depth=3/"
+		output_dir = "test_files/TieDIE.size=1.0/"
 
 		# test report output
 		report_text = self.readFile(output_dir+"report.txt")

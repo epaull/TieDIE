@@ -4,67 +4,6 @@ import re, math, os, sys, operator, random
 import networkx as nx
 from collections import defaultdict
 
-def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, network, options):
-	"""
-		Generate a spanning subnetwork from the supplied inputs, diffused heats and 
-		size control cutoff
-
-		Input:
-			- upstream heats
-			- downstream heats
-			- diffused upstream heats
-			- diffused downstream heats	
-			- size control factor
-
-		Output:
-			- spanning network
-			- list of nodes in that network
-	"""
-
-	size_control = options['size']
-	set_alpha = False
-	if 'alpha' in options:
-		set_alpha = options['alpha']
-
-	linker_cutoff = None
-	linker_nodes = None
-	linker_scores = None
-	alpha_score = None
-	# optional: if a linker cutoff is supplied, use this without performing the computation
-	if set_alpha:
-		alpha_score = None
-		linker_cutoff = float(set_alpha)
-	else:
-		# find the 'cutoff' for selecting linker genes that fall above this threshold
-		linker_cutoff, alpha_score = findLinkerCutoff(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control)
-
-	# 'linker' nodes and the scores for each, after we threshold at the cutoff
-	linker_nodes, linker_scores = filterLinkers(up_heats_diffused, down_heats_diffused, linker_cutoff)
-
-
-	ugraph = None
-	if 'pcst' in options and options['pcst']:
-		# optional: use the Prize Collecting Steiner Tree formulation to connect the network
-		ugraph = runPCST(up_heats, down_heats, linker_nodes, options['network_file'])
-	else:
-		nodes = set(up_heats).union(set(down_heats)).union(set(linker_nodes))
-		# simply find connected edges with both nodes in the selected set
-		ugraph = connectedSubnets(network, nodes)
-
-	if len(ugraph) == 0:
-		sys.stderr.write("Couldn't find any linking graph at this size setting!\n")
-		return (None, None, None, None)
-	# map the undirected edge list back to the directed network, which includes edge types, and directionality
-	subnet_soln = mapUGraphToNetwork(ugraph, network)
-	
-	subnet_soln_nodes = set()
-	for s in subnet_soln:
-		subnet_soln_nodes.add(s)
-		for (i,t) in subnet_soln[s]:
-			subnet_soln_nodes.add(t)
-
-	return (subnet_soln, subnet_soln_nodes, alpha_score, linker_scores)
-
 def parseLST(file):
 
 	lst = []
@@ -404,247 +343,6 @@ def parseNet(network):
 		net[source].add((interaction, target))
 
 	return net
-
-def findLinkerCutoff(source_set, target_set, up_heat_diffused, down_heat_diffused, size):
-	"""
-	For a given set of source, target, and diffused heats for each, find a threshold value
-	that yeilds a "linker" set of the given size (relative to the input set size). 
-
-	Returns:
-		The cutoff/threshold to use, and the Relevance Score at that cutoff
-
-	>>> findLinkerCutoff( set(["A", "B"]), set(["X", "Y"]), {"A":1.0, "B":1.1, "C":0.5, "D":0.4}, {"X":2.0, "Y":2.1, "C":0.7, "D":0.5}, 0.2)
-	(0.4999, 0.16666666666666666)
-	>>> findLinkerCutoff( set(["A", "B"]), set(["X", "Y"]), {"A":1.0, "B":1.1, "C":0.5, "D":0.4}, {"X":2.0, "Y":2.1, "C":0.7, "D":0.5}, 1.0)
-	(0, 0)
-	>>> findLinkerCutoff( set(["A", "B"]), set(["X", "Y"]), {"A":1.0, "B":1.1, "C":0.5, "D":0.4}, {"X":2.0, "Y":2.1, "C":0.7, "D":0.5}, 0.0)
-	(1000000, 0)
-
-	"""
-	if down_heat_diffused is None:
-		# diffusing from a single source (i.e. not TieDIE but the HotNet algorithm, for comparison)
-		cutoff, score = findLinkerCutoffSingle(source_set, up_heat_diffused, size)		
-	else:
-		try:
-			cutoff, score = findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_diffused, size)		
-		except:
-			return (0,0)
-
-	# boundary condition control
-	if cutoff < 0:
-		raise Exception("Error: reached boundary condition: check inputs")
-
-	return (cutoff, score)
-
-def findLinkerCutoffSingle(source_set, up_heat_diffused, size):
-	"""
-	If diffusing from a single source (i.e. not TieDIE but the HotNet algorithm, the implementation is trivial
-	"""
-
-
-	source_set = set(source_set)
-	up_sorted = sorted(up_heat_diffused, key=up_heat_diffused.get, reverse=True)
-
-	EPSILON = 0.0001
-
-	# we want to find this many diffused genes in total
-	target_size = size*len(source_set)
-
-	i = 1
-	cutoff = None
-	for (gene, heat) in sorted(up_heat_diffused.iteritems(), key=operator.itemgetter(1), reverse=True):
-
-		# add an epsilon to the cutoff so that the threshold falls just above this gene
-		cutoff = heat+EPSILON
-		# above this cutoff, the remaining set of linker genes is stored here
-		diffused_set = set(up_sorted[0:i])
-		# if the unique set of linker genes is of the desired size, stop at this cutoff...
-		if len(diffused_set.difference(source_set)) > target_size:
-			break
-		i += 1
-
-	return (cutoff, 0)	
-
-def findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_diffused, size):
-
-	if size == 0:
-		return (1000000, 0)
-
-	target_set = set(target_set)
-	source_set = set(source_set)
-	# reverse-sort both sets by the diffused heat values
-	up_sorted = sorted(up_heat_diffused, key=up_heat_diffused.get, reverse=True)
-	down_sorted = sorted(down_heat_diffused, key=down_heat_diffused.get, reverse=True)
-	scores = {}
-	best = None
-	last = 0
-
-	foundPos = False
-
-	# rank the min heats, and decrement the cutoff, adding an additional gene at each step
-	EPSILON = 0.0001
-
-	f, min_heats = filterLinkers(up_heat_diffused,down_heat_diffused,1)
-	# Iterate through the reverse-sorted list of heats. Stop when the exclusive set of nodes is below the desired size
-	for cutoff in [h-EPSILON for (l,h) in sorted(min_heats.iteritems(), key=operator.itemgetter(1), reverse=True)]:
-		score, size_frac = scoreLinkers(up_heat_diffused, up_sorted, down_heat_diffused, down_sorted, source_set, target_set, cutoff, size)
-
-		# reached the desired size: return the score & cutoff
-		if size_frac > 1:
-			return (cutoff, score)
-
-
-def scoreLinkers(heats1, sorted1, heats2, sorted2, sourceSet, targetSet, cutoff, size):
-	"""
-		Get linkers greater than this cutoff according to reverse-sorted list. 
-		
-		Inputs:
-			source and target sets, diffused heats for each and the heat-sorted
-			order for each.
-			The linker cutoff chosen.
-	""" 
-
-	# find the genes in the first set that fall above this cutoff 
-	filtered_h1 = {}
-	for l in sorted1:
-		s = heats1[l]
-		if s < cutoff:
-			break
-
-		filtered_h1[l] = s
-
-	# genes in second set above this cutoff
-	filtered_h2 = {}
-	for l in sorted2:
-		s = heats2[l]
-		if s < cutoff:
-			break
-
-		filtered_h2[l] = s
-	
-	# make sets of both 'relevance neighborhoods' R_s and R_t
-	f1 = set(filtered_h1)
-	f2 = set(filtered_h2)
-
-	# the union are all the genes in the relevance neighborhoods of each set R_s U R_t
-	union = f1.union(f2)
-	intersection = f1.intersection(f2)
-	# connecting genes are linkers not in the source or target.
-	# intutively, this is the heat that flows to the same  
-	connecting = intersection.difference(sourceSet).difference(targetSet)
-	# the score is the number of connecting 'linker' genes over the size of the entire 
-	# relevance neighborhoods
-	score = len(connecting)/float(len(union))
-	# the relative size of the connecting genes, compared to the input set sizes
-	size_frac = (len(connecting)/float(len(sourceSet.union(targetSet))))/float(size)
-	
-	return (score, size_frac)
-
-def scoreLinkersMulti(input_heats, min_heats, cutoff, size):
-	"""
-		Get linkers greater than this cutoff according to reverse-sorted list. 
-		This version takes an arbitrary number of inputs.	
-		
-		Inputs:
-			input_heats: a dictionary of an arbitrary number of input heat sets. 
-			min_heats: pre-processed 'linker' heat values according to any particular
-			linker function. 
-	""" 
-	
-	# get the set of all input genes
-	all_inputs = set()
-	for name in input_heats:
-		all_inputs = all_inputs.union(input_heats[name].keys())
-	
-	# generate the set of linker genes according to the supplied heat cutoff. 
-	all_linkers = set()
-	for (gene, heat) in sorted(min_heats.iteritems(), key=operator.itemgetter(1), reverse=True):
-		if heat < cutoff:
-			break
-		all_linkers.add(gene)
-
-	# generate the union of input and linker sets, the exclusive 'connecting' set of linker/non-input genes
-	# and score based on the fractional criterion
-	all_genes = all_inputs.union(all_linkers)
-	connecting = all_linkers.difference(all_inputs)
-	score = len(connecting)/float(len(all_linkers))
-	# the relative size of the connecting genes, compared to the input set sizes
-	size_frac = (len(connecting)/float(len(all_inputs)))/float(size)
-	
-	return (score, size_frac)
-
-def getMinHeats(diffused):
-	"""
-	Gets the minimum heats for all genes, from a number of diffused heat vectors.
-
-	Input:
-		diffused = { 'set':{'gene1':heat1, 'gene2':...}
-
-	Returns:
-		A minimum-heat vector over all genes
-			
-	"""
-
-	mins = {}
-	for file in diffused:
-		# a hash of hashes: file is the index
-		for (gene, heat) in diffused[file].iteritems():
-			if gene in mins:
-				if mins[gene] > heat:
-					mins[gene] = heat
-			else:
-				mins[gene] = heat
-
-	return mins
-
-
-def getMaxHeats(diffused):
-	"""
-	Gets the maximum heats for all genes, from a number of diffused heat vectors.
-	Input:
-		diffused = { 'set':{'gene1':heat1, 'gene2':...}
-
-	Returns:
-		A max-heat vector over all genes
-			
-	"""
-	max = {}
-	for file in diffused:
-		for (gene, heat) in diffused[file].iteritems():
-			if gene in max:
-				if max[gene] < heat:
-					max[gene] = heat
-			else:
-				max[gene] = heat
-
-	return max
-
-def filterLinkers(up_heats_diffused, down_heats_diffused, cutoff):
-	"""
-	Use the min(diffused1, diffused2) function to return a list of genes
-	that fall above that cutoff. 
-	Input:
-		diffused heats for each set, and the numeric cutoff value
-
-	Returns:
-		a list of genes above the cutoff, a hash of minimum heat values for all genes in the network
-	"""
-	tiedie_heats = {}
-	filtered = []
-	if down_heats_diffused is None:
-		# trivially: if this is a single list of diffused values, just return it
-		return (up_heats_diffused.keys(), up_heats_diffused)
-
-	for node in up_heats_diffused:
-		if node not in down_heats_diffused:
-			# it doesn't make the cut if it's not in both sets
-			continue
-		min_heat = min(up_heats_diffused[node], down_heats_diffused[node])
-		tiedie_heats[node] = min_heat
-		if min_heat > cutoff:
-			filtered.append(node)
-
-	return (filtered, tiedie_heats)
 
 def mapUGraphToNetwork(edge_list, network):
 	"""
@@ -1011,6 +709,27 @@ def getTFparents(network):
 			children[source].add(target)
 	
 	return (parents, children)	
+
+def normalizeHeats(data):
+	"""
+
+	"""
+	FACTOR = 1000
+	normalized = {}
+	signs = {}
+	sum = 0.0
+	for (event, val) in data.items():
+		sum += abs(val)
+
+	for (event, val) in data.items():
+		sign = "+"
+		if val < 0:
+			sign = "-"
+		normalized[event] = FACTOR*abs(val) / sum
+		signs[event] = sign
+
+	return normalized
+	
 
 def getActivityScores(expr_data, tf_genes, tf_parents, binary_threshold=0): 
 	'''

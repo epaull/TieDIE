@@ -58,127 +58,12 @@ sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
 from kernel import Kernel
 import tiedie_util
 from tiedie_util import *
+from linkers import *
 from master_reg import ActivityScores, SSActivityScores
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
 	from kernel_scipy import SciPYKernel
-
-def min(vals):
-	min = vals[0]
-	for v in vals:
-		if v < min:
-			min = v
-
-	return min
-
-# NOTE should all these functions be moved to a file in lib, as they currently
-# appear in multiple files in bin? --ESR
-def getProduct(diffused):
-	gene_scores = {}
-	for file in diffused:
-		# a hash of hashes: file is the index
-		for (gene, heat) in diffused[file].iteritems():
-			if gene not in gene_scores:
-				gene_scores[gene] = []
-			gene_scores[gene].append(heat)
-
-	gene_products = {}
-	for gene in gene_scores:
-		product = 1
-		for v in gene_scores[gene]:
-			product *= v
-		gene_products[gene] = product
-	
-	return gene_products
- 
-def getMinHeats(consider_top, diffused):
-	"""
-	Gets the minimum heats for all genes, from a number of diffused heat vectors.
-
-	Input:
-        consider_top -- ???
-		diffused = { 'set':{'gene1':heat1, 'gene2':...} -- what?
-
-	Returns:
-		A minimum-heat vector over all genes represented as a dict where the
-        name of the gene is the key
-			
-	"""
-
-	gene_scores = {}
-	for file in diffused:
-		# a hash of hashes: file is the index
-		for (gene, heat) in diffused[file].iteritems():
-			if gene not in gene_scores:
-				gene_scores[gene] = []
-			gene_scores[gene].append(heat)
-
-  
-	min_gene_values = {} 
-	for gene in gene_scores:
-		values = gene_scores[gene]
-		# get the top X
-		min_gene_values[gene] = min(sorted(values, reverse=True)[0:consider_top])
-
-	return min_gene_values
-
-def extractSubnetwork(input_heats, diffused_heats, size_control):
-	"""
-	Generate a spanning subnetwork from the supplied inputs, diffused heats and 
-	size control cutoff
-
-	Input:
-		- input heats (in what format?)
-		- diffused input heats (in what format?)
-		- size control factor (explain what this means?)
-
-	Returns: tuple containing the following elements
-		- spanning network in 'network[node] = [(edge_type, other_node)]' format
-		- set of node ID strings in that network
-        - linker heats
-        - linker cutoff
-	"""
-
-	linker_cutoff = None
-	linker_nodes = None
-	linker_scores = None
-
-	# get linker heats as a function of input sets
-	linker_heats = None
-	linker_heats = getMinHeats(2, diffused_heats)
-
-	EPSILON = 0.0001
-	linker_cutoff = None
-	score = None
-	linkers = set()
-	linker_scores = {}
-	for (l,h) in sorted(linker_heats.iteritems(), key=operator.itemgetter(1), reverse=True):
-        # NOTE why is this function returning the last value of linker_cutoff?
-		linker_cutoff = h-EPSILON
-		score, size_frac = scoreLinkersMulti(input_heats, linker_heats,
-                linker_cutoff, size_control)
-		linkers.add(l)
-		linker_scores[l] = h
-		if size_frac > 1:
-			break
-
-	# set of input heats
-	ugraph = None
-	# USE JUST LINKER GENES
-	active_nodes = set(linkers)
-	ugraph = connectedSubnets(network, active_nodes)
-	if not ugraph or len(ugraph) == 0:
-		return (None, None, None, None)
-	subnet_soln = mapUGraphToNetwork(ugraph, network)
-	
-	subnet_soln_nodes = set() # set of node ID strings contained in the subnet
-	for s in subnet_soln:
-		subnet_soln_nodes.add(s)
-		for (i,t) in subnet_soln[s]:
-			subnet_soln_nodes.add(t)
-
-	return (subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff)
 
 def thresholdEvents(data, threshold):
 
@@ -189,25 +74,6 @@ def thresholdEvents(data, threshold):
 
 	return filtered
 
-def normalizeHeats(data):
-	"""
-
-	"""
-	normalized = {}
-	signs = {}
-	sum = 0.0
-	for (event, val) in data.items():
-		sum += abs(val)
-
-	for (event, val) in data.items():
-		sign = "+"
-		if val < 0:
-			sign = "-"
-		normalized[event] = abs(val) / sum
-		signs[event] = sign
-
-	return (normalized, signs)
-	
 # parse network file: use for input validation if heat nodes are not in network
 sys.stderr.write("Parsing Network File..\n")
 network = parseNet(opts.network)
@@ -264,7 +130,9 @@ for sample_id in sample_mut:
 	input_heats['down'] = tf_heats		
 	diffused_heats['up'] = diffuser.diffuse(mut_heats)
 	diffused_heats['down'] = diffuser.diffuse(tf_heats)
-	subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff = extractSubnetwork(input_heats, diffused_heats, 1.0)
+	options = {}
+	options['size'] = 1.0
+	subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff = extractSubnetwork(network, input_heats, diffused_heats, 1.0, options)
 	if subnet_soln is None:
 		print "No network found for sample:"+sample_id
 		continue	
