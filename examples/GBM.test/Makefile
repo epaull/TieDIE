@@ -1,3 +1,3 @@
 
 result:
-	../../bin/tiedie -u upstream.input -d downstream.input -n pathway.sif -s 1.0
+	../../bin/tiedie upstream.input downstream.input -n pathway.sif -s 1.0
