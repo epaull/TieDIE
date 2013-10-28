@@ -7,6 +7,7 @@ TEST_PATHWAY = "test_files/test.pathway.sif"
 TEST_KERNEL = "test_files/kernel.tab"
 TEST_SOURCE = "test_files/upstream.input"
 TEST_TARGET = "test_files/downstream.input"
+TEST_DE = "test_files/de.input"
 TEST_DIFFUSED_SOLN = "test_files/upstream.diffused"
 
 class TestSequenceFunctions(unittest.TestCase):
@@ -36,19 +37,37 @@ class TestSequenceFunctions(unittest.TestCase):
 		os.system("rm -rf "+out_dir)
 
 	def testRUN(self):
-		os.system("../bin/tiedie -n "+TEST_PATHWAY+" -k "+TEST_KERNEL+" -u "+TEST_SOURCE+" -d "+TEST_TARGET+" -s 1.0")
+
+		self.testIN1()
+		self.testIN2()
+
+	def testIN1(self):
+		cmd = "../bin/tiedie -n "+TEST_PATHWAY+" -k "+TEST_KERNEL+" -u "+TEST_SOURCE+" -d "+TEST_TARGET+" -s 1.0"
+		print cmd
+		os.system(cmd)
 	
 		output_dir = "test_files/TieDIE_RESULT_size=1.0_depth=3/"
+		reg_dir = "test_files/REGRESSION/"
+		self.validateOutput(output_dir, reg_dir)
 
+	def testIN2(self):
+		cmd = "../bin/tiedie -n "+TEST_PATHWAY+" -k "+TEST_KERNEL+" -u "+TEST_SOURCE+" --d_expr "+TEST_DE+" -s 1.0 --min_hub 3"
+		print cmd
+		os.system(cmd)
+	
+		output_dir = "test_files/TieDIE_RESULT_size=1.0_depth=3/"
+		reg_dir = "test_files/REGRESSION/"
+		self.validateOutput(output_dir, reg_dir)
+
+	def validateOutput(self, output_dir, reg_dir):
 		# test report output
 		report_text = self.readFile(output_dir+"report.txt")
 		self.assertEqual(report_text[0].split("\t")[0], "0.625")
 		self.assertEqual(report_text[1].split("\t")[0], "0.5")
-		self.assertEqual(report_text[2], "And 12 connecting nodes")
-		self.assertEqual(report_text[3], "Compactness Score:0.4425")
+		self.assertEqual(report_text[2], "And 10 connecting nodes")
+		self.assertEqual(report_text[3], "Compactness Score:0.4625")
 
 		# file output
-		reg_dir = "test_files/REGRESSION/"
 		self.assertTrue( self.filesEqual(output_dir+"tiedie.sif", reg_dir+"tiedie.sif") )
 		self.assertTrue( self.filesEqual(output_dir+"heats.NA", reg_dir+"heats.NA") )
 		self.assertTrue( self.filesEqual(output_dir+"node.stats", reg_dir+"node.stats") )

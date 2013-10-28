@@ -820,4 +820,22 @@ def getNetworkNodes(network):
 			nodes.add(t)
 	return nodes
 
+def normalizeHeats(data):
+	"""
+	Normalize absolute value sum of data hash to 1000
+	"""
+	FACTOR = 1000
+	normalized = {}
+	signs = {}
+	sum = 0.0
+	for (event, val) in data.items():
+			sum += abs(val)
 
+	for (event, val) in data.items():
+			sign = "+"
+			if val < 0:
+					sign = "-"
+			normalized[event] = FACTOR*abs(val) / sum
+			signs[event] = sign
+
+	return normalized
