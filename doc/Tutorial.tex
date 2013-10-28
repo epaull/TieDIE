@@ -36,7 +36,7 @@
 
 
 \author{Evan Paull \emailaddr{epaull@soe.ucsc.edu}}
-\title{TieDIE Tutorial \\ Version 1.0.1}
+\title{TieDIE Tutorial \\ Version 1.1.0}
 \date{\today}
 
 \begin{document}
@@ -110,6 +110,8 @@ and produce inputs that define the ``source" set of a TieDIE network analysis (s
 such as edgeR \cite{edgeR} and DESeq \cite{DESeq}. The ranked genome can then be used to find transcription factors with a regulated 
 set of genes that cluster to one end of this ranking: for example, Gene Set Enrichment Analysis \cite{Subramanian05} is a statistical 
 technique to find the significance of such sets, and can be used to find ``master regulator" genes that are likely to be controlling expression. Figure \ref{fig:masterreg} (below) illustrates this method, and for further explanation of the ``master regulator" algorithm, see the paper by Lim, WK and Califano, A \cite{MR_Califano}. 
+
+\noindent \bf{New: Version 1.1}. TieDIE now implements Master Regulator Analysis (MRA) \cite{MR_Califano} to automatically find significantly altered transcription factors from differential expression analysis results. 
 
 
 \begin{figure}[h]
