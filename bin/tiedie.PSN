@@ -113,9 +113,14 @@ tiedie_heat_scores = None
 if opts.node_ranks:
 	tiedie_heat_scores, signs = parseHeats(opts.node_ranks)
 
+# We can test only those samples with both expression and perturbation data
+test_samples = set(sample_mut.keys()).intersection(set(sample_activities.keys()))
+sys.stderr.write("Finding networks for "+str(len(test_samples))+" unique samples\n")
+
 stats = open(output_folder+"/network.stats.txt", 'w')
+stats.write("\t".join(["Sample", "Enrichment Score (GSEA)", "P-val"])+"\n")
 # generate a TieDIE network for each sample 
-for sample_id in sample_mut:
+for sample_id in test_samples:
 
 	mutation_events = thresholdEvents(sample_mut[sample_id], 1)
 	mut_heats = normalizeHeats(mutation_events)
@@ -139,7 +144,8 @@ for sample_id in sample_mut:
 	print "Writing network for sample "+sample_id
 	writeNetwork(subnet_soln, output_folder+"/"+sample_id+".sif")
 
-	ES_score, pval = ActivityScores.getEnrichmentScore(network, tiedie_heat_scores, subnet_soln_nodes)
-	stats.write("\t".join([sample_id, str(ES_score), str(pval)])+"\n")
+	if tiedie_heat_scores:
+		ES_score, pval = ActivityScores.getEnrichmentScore(network, tiedie_heat_scores, subnet_soln_nodes)
+		stats.write("\t".join([sample_id, str(ES_score), str(pval)])+"\n")
 
 stats.close()
