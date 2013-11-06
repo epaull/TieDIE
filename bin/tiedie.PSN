@@ -60,6 +60,7 @@ import tiedie_util
 from tiedie_util import *
 from linkers import *
 from master_reg import ActivityScores, SSActivityScores
+from pathway import Pathway, BasicPathValidator
 
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
@@ -117,17 +118,19 @@ if opts.node_ranks:
 test_samples = set(sample_mut.keys()).intersection(set(sample_activities.keys()))
 sys.stderr.write("Finding networks for "+str(len(test_samples))+" unique samples\n")
 
+# save significance test statistics
 stats = open(output_folder+"/network.stats.txt", 'w')
 stats.write("\t".join(["Sample", "Enrichment Score (GSEA)", "P-val"])+"\n")
+
 # generate a TieDIE network for each sample 
 for sample_id in test_samples:
 
 	mutation_events = thresholdEvents(sample_mut[sample_id], 1)
-	mut_heats = normalizeHeats(mutation_events)
+	mut_heats, mut_signs = normalizeHeats(mutation_events)
 	# hardcoded for now: z = 1.5
 	tf_events = thresholdEvents(sample_activities[sample_id], 0.5)
 	
-	tf_heats = normalizeHeats(tf_events)
+	tf_heats, tf_signs = normalizeHeats(tf_events)
 
 	input_heats = {}
 	diffused_heats = {}
@@ -141,8 +144,21 @@ for sample_id in test_samples:
 	if subnet_soln is None:
 		print "No network found for sample:"+sample_id
 		continue	
+
+	# path validation logic...
+	validator = BasicPathValidator({
+	validator['source'] = mut_heats.keys(),
+	validator['target'] = tf_heats.keys(),
+	validator['source_actions'] = mut_signs,
+	validator['target_actions'] = tf_signs})
+
+	# search for consistent paths within this network solution
+	subnet = Pathway(subnet_soln, validator=validator)
+	filtered_edges = subnet.allPaths(mut_heats.keys(), tf_heats.keys(), int(opts.depth))
+
 	print "Writing network for sample "+sample_id
 	writeNetwork(subnet_soln, output_folder+"/"+sample_id+".sif")
+	writeEL(filtered_edges, output_folder+"/"+sample_id+".filtered.sif")
 
 	if tiedie_heat_scores:
 		ES_score, pval = ActivityScores.getEnrichmentScore(network, tiedie_heat_scores, subnet_soln_nodes)

@@ -525,6 +525,14 @@ def writeNetwork(net, out_file):
 
 	out.close()
 
+def writeEL(el, out_file):
+
+	out = open(out_file, 'w')
+	for (source, int, target) in el:
+		out.write("\t".join([source, int, target])+"\n")
+
+	out.close()
+
 def randomSubnet(network, num_sources):
 	"""
 	Take a random sample of nodes, of the specified size
@@ -728,7 +736,7 @@ def normalizeHeats(data):
 		normalized[event] = FACTOR*abs(val) / sum
 		signs[event] = sign
 
-	return normalized
+	return (normalized, signs)
 	
 
 def getActivityScores(expr_data, tf_genes, tf_parents, binary_threshold=0): 
