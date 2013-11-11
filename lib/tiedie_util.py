@@ -544,24 +544,6 @@ def randomSubnet(network, num_sources):
 			
 	return sub
 
-def writeEL(el, so, down_set, out_file):
-
-	out = open(out_file, 'w')
-	for (source,int,target) in el:
-		out.write("\t".join([source, int, target])+"\n")
-	out.close()
-
-	if so is None or down_set is None:
-		return
-
-	out = open(out_file+".txt", 'w')
-	set2 = set()
-	for (source,int,target) in el:
-		if target in down_set:
-			set2.add(target)
-	out.write(so+"\t"+"\t".join(set2)+"\n")
-	out.close()
-
 def writeNAfile(file_name, hash_values, attr_name):
 	"""
 	Write out a node-attribute file. Include the header 
