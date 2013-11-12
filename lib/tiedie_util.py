@@ -775,3 +775,19 @@ def getActivityScores(expr_data, tf_genes, tf_parents, binary_threshold=0):
 
 	return activities
 
+def geomMean(scoresA, scoresB):
+	'''
+	Input: 2 hashes of scores across a set of genes
+
+	Returns: the geometric mean of these scores
+	'''
+	
+	combined = {}
+	for key in scoresA:
+		mean = None
+		if key not in scoresB:
+			continue
+		
+		combined[key] = math.pow(scoresA[key]*scoresB[key], 0.5)
+
+	return combined

@@ -172,6 +172,14 @@ for sample_id in test_samples:
 		print "No linking network found for sample:"+sample_id
 		continue
 
+	# take the geometric mean of the patient-specific scores and the tieDIE scores
+	posteriorHeats = geomMean(linker_heats, tiedie_heat_scores)
+	out = open(output_folder+"/"+sample_id+".NODE_SCORES.txt", 'w')
+	for (key, val) in posteriorHeats.items():
+		out.write(key+"\t"+str(val)+"\n")
+	out.close()
+
+
 	out = open(output_folder+"/"+sample_id+".txt", 'w')
 	out.write("Source: "+"\t".join(captured_source)+"\n")
 	out.write("Target: "+"\t".join(captured_target)+"\n")
