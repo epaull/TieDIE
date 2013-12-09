@@ -308,6 +308,10 @@ class ActivityScores:
 				# constant at the end
 				sum_norm_const += abs(self.scores[i])
 
+		# FIXME: handle this with a better error indication
+		if sum_norm_const == 0:
+			return 0
+
 		running_sum = 0.0
 		max_rs = 0
 		min_rs = 0

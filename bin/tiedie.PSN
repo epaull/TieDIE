@@ -141,27 +141,48 @@ for sample_id in test_samples:
 	options = {}
 	options['size'] = 1.0
 	subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff = extractSubnetwork(network, input_heats, diffused_heats, 1.0, options)
-	if subnet_soln is None:
+	if subnet_soln is None or len(subnet_soln_nodes) < 2:
 		print "No network found for sample:"+sample_id
 		continue	
 
 	# path validation logic...
 	validator = BasicPathValidator({
-	validator['source'] = mut_heats.keys(),
-	validator['target'] = tf_heats.keys(),
-	validator['source_actions'] = mut_signs,
-	validator['target_actions'] = tf_signs})
+		'source': mut_heats.keys(),
+		'target': tf_heats.keys(),
+		'source_actions': mut_signs,
+		'target_actions': tf_signs})
 
 	# search for consistent paths within this network solution
 	subnet = Pathway(subnet_soln, validator=validator)
-	filtered_edges = subnet.allPaths(mut_heats.keys(), tf_heats.keys(), int(opts.depth))
+	filtered_edges = subnet.allPaths(mut_heats.keys(), tf_heats.keys(), 4)
 
 	print "Writing network for sample "+sample_id
 	writeNetwork(subnet_soln, output_folder+"/"+sample_id+".sif")
 	writeEL(filtered_edges, output_folder+"/"+sample_id+".filtered.sif")
 
+	# Node summary
+	captured_source = subnet_soln_nodes.intersection(set(mutation_events))
+	captured_target = subnet_soln_nodes.intersection(set(tf_events))
+	
 	if tiedie_heat_scores:
 		ES_score, pval = ActivityScores.getEnrichmentScore(network, tiedie_heat_scores, subnet_soln_nodes)
 		stats.write("\t".join([sample_id, str(ES_score), str(pval)])+"\n")
+
+	if len(captured_source) == 0 or len(captured_target) == 0:
+		print "No linking network found for sample:"+sample_id
+		continue
+
+	# take the geometric mean of the patient-specific scores and the tieDIE scores
+	posteriorHeats = geomMean(linker_heats, tiedie_heat_scores)
+	out = open(output_folder+"/"+sample_id+".NODE_SCORES.txt", 'w')
+	for (key, val) in posteriorHeats.items():
+		out.write(key+"\t"+str(val)+"\n")
+	out.close()
+
+
+	out = open(output_folder+"/"+sample_id+".txt", 'w')
+	out.write("Source: "+"\t".join(captured_source)+"\n")
+	out.write("Target: "+"\t".join(captured_target)+"\n")
+	out.close()
 
 stats.close()
