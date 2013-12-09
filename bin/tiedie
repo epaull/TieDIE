@@ -225,14 +225,6 @@ for input1, input2 in combinations(input_heats, 2):
             input_heats[input2], network, diffuser, output_file)
 	print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
 
-# pairwise distances between TFS: save results and print to stdout
-if tfs_heats:
-	i = 1
-	for input in input_heats:
-		output_file = output_folder+"/"+str(i)+":"+"tfs"+".dist.txt"
-		empirical_p, fitted_p = getPVAL(input_heats[input], tfs_heats, network, diffuser, output_file)
-		print "\t".join([input, "tfs", str(fitted_p), str(empirical_p)])
-
 print "done"				
 
 # do a full TieDIE run: save heat values
