@@ -141,6 +141,13 @@ for sample_id in test_samples:
 	options = {}
 	options['size'] = 1.0
 	subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff = extractSubnetwork(network, input_heats, diffused_heats, 1.0, options)
+
+	# take the geometric mean of the patient-specific scores and the tieDIE scores
+	out = open(output_folder+"/"+sample_id+".linker_heats.txt", 'w')
+	for (key, val) in linker_heats.items():
+		out.write(key+"\t"+str(val)+"\n")
+	out.close()
+
 	if subnet_soln is None or len(subnet_soln_nodes) < 2:
 		print "No network found for sample:"+sample_id
 		continue	
