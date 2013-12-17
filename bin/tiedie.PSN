@@ -122,6 +122,11 @@ sys.stderr.write("Finding networks for "+str(len(test_samples))+" unique samples
 stats = open(output_folder+"/network.stats.txt", 'w')
 stats.write("\t".join(["Sample", "Enrichment Score (GSEA)", "P-val"])+"\n")
 
+# save matrix of feature scores by sample
+# index first by sample ID
+sample_heats = {}
+features = None
+
 # generate a TieDIE network for each sample 
 for sample_id in test_samples:
 
@@ -142,11 +147,23 @@ for sample_id in test_samples:
 	options['size'] = 1.0
 	subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff = extractSubnetwork(network, input_heats, diffused_heats, 1.0, options)
 
-	# take the geometric mean of the patient-specific scores and the tieDIE scores
+	# write out heat averages for this sample
 	out = open(output_folder+"/"+sample_id+".linker_heats.txt", 'w')
+	# save the heats
+	sample_heats[sample_id] = linker_heats.copy()
 	for (key, val) in linker_heats.items():
 		out.write(key+"\t"+str(val)+"\n")
 	out.close()
+	if not features:
+		features = linker_heats.keys()
+
+	# take the geometric mean of the patient-specific scores and the tieDIE scores
+	posteriorHeats = geomMean(linker_heats, tiedie_heat_scores)
+	out = open(output_folder+"/"+sample_id+".NODE_SCORES.txt", 'w')
+	for (key, val) in posteriorHeats.items():
+		out.write(key+"\t"+str(val)+"\n")
+	out.close()
+
 
 	if subnet_soln is None or len(subnet_soln_nodes) < 2:
 		print "No network found for sample:"+sample_id
@@ -174,22 +191,20 @@ for sample_id in test_samples:
 	if tiedie_heat_scores:
 		ES_score, pval = ActivityScores.getEnrichmentScore(network, tiedie_heat_scores, subnet_soln_nodes)
 		stats.write("\t".join([sample_id, str(ES_score), str(pval)])+"\n")
-
+	
 	if len(captured_source) == 0 or len(captured_target) == 0:
 		print "No linking network found for sample:"+sample_id
 		continue
 
-	# take the geometric mean of the patient-specific scores and the tieDIE scores
-	posteriorHeats = geomMean(linker_heats, tiedie_heat_scores)
-	out = open(output_folder+"/"+sample_id+".NODE_SCORES.txt", 'w')
-	for (key, val) in posteriorHeats.items():
-		out.write(key+"\t"+str(val)+"\n")
-	out.close()
-
-
 	out = open(output_folder+"/"+sample_id+".txt", 'w')
 	out.write("Source: "+"\t".join(captured_source)+"\n")
 	out.write("Target: "+"\t".join(captured_target)+"\n")
+	del linker_heats
 	out.close()
 
 stats.close()
+out = open(output_folder+"/sample_heats.txt", 'w')
+out.write("Sample\t"+"\t".join(features)+"\n")
+for sample_id in sample_heats:
+	out.write(sample_id+"\t"+"\t".join([str(sample_heats[sample_id][feature]) for feature in features])+"\n")
+out.close()
