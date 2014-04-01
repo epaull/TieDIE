@@ -51,7 +51,7 @@ class Kernel:
         """
         all_labels = set()
         for label in self.labels:
-            all_labels = all_labels.union(set(label))
+            all_labels = all_labels.union(set(self.labels[label]))
 
         return all_labels
 
