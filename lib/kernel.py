@@ -45,6 +45,16 @@ class Kernel:
             self.ncols[kernel] = self.kernels[kernel].shape[1]-1
             self.nrows[kernel] = self.kernels[kernel].shape[0]-1
 
+    def getLabels(self):
+        """
+            Return the set of all node/gene labels used by this kernel object
+        """
+        all_labels = set()
+        for label in self.labels:
+            all_labels = all_labels.union(set(label))
+
+        return all_labels
+
     def kernelMultiplyOne(self, kernel, vector):
         """
             Multiply the specified kernel by the supplied input heat vector. 
@@ -109,10 +119,10 @@ class Kernel:
         Returns:
             Diffused heat vector
         """
-		# diffuse separately on each kernel (if more than one), and store. 
+        # diffuse separately on each kernel (if more than one), and store. 
         return_vectors = []
         for kernel in self.kernels:
-			# run diffusion on each constituent kernel
+            # run diffusion on each constituent kernel
             diffused_vector = self.kernelMultiplyOne(kernel, vector)
             return_vectors.append(diffused_vector)
 

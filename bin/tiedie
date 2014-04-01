@@ -321,6 +321,12 @@ else:
 		# for subsequent diffusion operations
 		diffuser = SciPYKernel(opts.network)
 
+# Check to make sure the node universe matches the 
+k_labels = diffuser.getLabels()
+if len(network_nodes) != len(k_labels) or len(network_nodes.intersection(k_lables)) != len(k_labels):
+	sys.stderr.write("Error: the universe of gene/node labels in the network file doesn't match the supplied kernel file!\n")
+	sys.exit(1)
+
 sys.stderr.write("Diffusing Heats...\n")
 # Separately perform diffusion for each input set
 up_heats_diffused = diffuser.diffuse(up_heats, reverse=False)
