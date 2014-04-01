@@ -636,7 +636,7 @@ def parseMatrix(file):
 			sampleIDS = vals
 			fixedNames = []
 			for i in range(0, len(sampleIDS)):
-				sample = sampleIDS[i][0:12]
+				sample = sampleIDS[i]
 				fixedNames.append(sample)
 
 			sampleIDS = fixedNames
