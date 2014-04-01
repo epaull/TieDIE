@@ -62,10 +62,10 @@ class TestSequenceFunctions(unittest.TestCase):
 	def validateOutput(self, output_dir, reg_dir):
 		# test report output
 		report_text = self.readFile(output_dir+"report.txt")
-		self.assertEqual(report_text[0].split("\t")[0], "0.625")
+		self.assertEqual(report_text[0].split("\t")[0], "0.375")
 		self.assertEqual(report_text[1].split("\t")[0], "0.5")
-		self.assertEqual(report_text[2], "And 10 connecting nodes")
-		self.assertEqual(report_text[3], "Compactness Score:0.4625")
+		self.assertEqual(report_text[2], "And 9 connecting nodes")
+		self.assertEqual(report_text[3], "Compactness Score:0.3475")
 
 		# file output
 		self.assertTrue( self.filesEqual(output_dir+"tiedie.sif", reg_dir+"tiedie.sif") )
