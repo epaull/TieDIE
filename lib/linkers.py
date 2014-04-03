@@ -58,6 +58,35 @@ def getMinHeats(consider_top, diffused):
 
 	return min_gene_values
 
+def getMaxHeats(consider_top, diffused):
+	"""
+	Gets the maximum heats for all genes, from a number of diffused heat vectors.
+
+	Input:
+		diffused = { 'set':{'gene1':heat1, 'gene2':...}
+
+	Returns:
+		A minimum-heat vector over all genes
+			
+	"""
+
+	gene_scores = {}
+	for file in diffused:
+		# a hash of hashes: file is the index
+		for (gene, heat) in diffused[file].iteritems():
+			if gene not in gene_scores:
+				gene_scores[gene] = []
+			gene_scores[gene].append(heat)
+
+  
+	max_gene_values = {} 
+	for gene in gene_scores:
+		values = gene_scores[gene]
+		# get the top X
+		max_gene_values[gene] = max(sorted(values, reverse=True)[0:consider_top])
+
+	return max_gene_values
+
 def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 	"""
 		Generate a spanning subnetwork from the supplied inputs, diffused heats and 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 ###
 ### TieDIE: Tied Diffusion for Network Discovery
@@ -133,7 +133,7 @@ for sample_id in test_samples:
 	mutation_events = thresholdEvents(sample_mut[sample_id], 1)
 	mut_heats, mut_signs = normalizeHeats(mutation_events)
 	# hardcoded for now: z = 1.5
-	tf_events = thresholdEvents(sample_activities[sample_id], 0.5)
+	tf_events = thresholdEvents(sample_activities[sample_id], 1.5)
 	
 	tf_heats, tf_signs = normalizeHeats(tf_events)
 
@@ -146,6 +146,7 @@ for sample_id in test_samples:
 	options = {}
 	options['size'] = 1.0
 	subnet_soln, subnet_soln_nodes, linker_heats, linker_cutoff = extractSubnetwork(network, input_heats, diffused_heats, 1.0, options)
+	max_heat_scores = getMaxHeats(len(input_heats), diffused_heats)
 
 	# write out heat averages for this sample
 	out = open(output_folder+"/"+sample_id+".linker_heats.txt", 'w')
@@ -154,15 +155,27 @@ for sample_id in test_samples:
 	for (key, val) in linker_heats.items():
 		out.write(key+"\t"+str(val)+"\n")
 	out.close()
+
+	# populate feature space with any representative here
 	if not features:
 		features = linker_heats.keys()
 
-	# take the geometric mean of the patient-specific scores and the tieDIE scores
-	posteriorHeats = geomMean(linker_heats, tiedie_heat_scores)
-	out = open(output_folder+"/"+sample_id+".NODE_SCORES.txt", 'w')
-	for (key, val) in posteriorHeats.items():
+	##
+	## write max heats
+	##
+	out = open(output_folder+"/"+sample_id+".max_heats.txt", 'w')
+	# save the heats
+	for (key, val) in max_heat_scores.items():
 		out.write(key+"\t"+str(val)+"\n")
 	out.close()
+
+	# take the geometric mean of the patient-specific scores and the tieDIE scores
+	if tiedie_heat_scores:
+		posteriorHeats = geomMean(linker_heats, tiedie_heat_scores)
+		out = open(output_folder+"/"+sample_id+".NODE_SCORES.txt", 'w')
+		for (key, val) in posteriorHeats.items():
+			out.write(key+"\t"+str(val)+"\n")
+		out.close()
 
 
 	if subnet_soln is None or len(subnet_soln_nodes) < 2:
