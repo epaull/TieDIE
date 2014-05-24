@@ -16,7 +16,6 @@ import org.osgi.framework.BundleContext;
  * @author SrikanthB
  */
 
-
 public class CyActivator extends AbstractCyActivator {
 
     public CyApplicationManager cyApplicationManager;
