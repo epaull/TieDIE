@@ -27,6 +27,7 @@ public class CyActivator extends AbstractCyActivator {
     public static CyNetworkViewFactory networkViewFactory;
     public static CyNetworkViewManager networkViewManager;
 
+
     @Override
     public void start(BundleContext context) throws Exception {
         String version = new String(" 1.0");
