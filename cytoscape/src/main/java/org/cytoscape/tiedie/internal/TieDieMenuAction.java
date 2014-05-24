@@ -26,6 +26,5 @@ public class TieDieMenuAction extends AbstractCyAction{
     public void actionPerformed(ActionEvent e) {
         TieDieCore tiediecore = new TieDieCore(cyactivator);
     }
-    
-    
+
 }
