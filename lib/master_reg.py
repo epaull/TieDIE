@@ -25,7 +25,6 @@ class ActivityScores:
 
 		# build a list of candidate regulators
 		self.candidates = {}	
-
 		for source in network:
 
 			positive_regulon = set()
@@ -41,7 +40,7 @@ class ActivityScores:
 				elif type == -1:
 					negative_regulon.add(t)
 
-			if (len(positive_regulon) + len(negative_regulon)) >= min_hub:
+			if (len(positive_regulon) + len(negative_regulon)) >= int(min_hub):
 				self.candidates[source] = (positive_regulon, negative_regulon)
 
 		self.generateRankings(scores)
@@ -88,7 +87,6 @@ class ActivityScores:
 		result = mrObj.scoreCandidates(nperms)
 		tfs_heats = {}
 		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
-			print result
 			# filter on p-value
 			if result[1] > 0.05:
 				continue
@@ -102,10 +100,45 @@ class ActivityScores:
 			t_total += abs(float(h))
 
 		# normalize abs values to sum to 1	
-		norm_factor = 1000.0/t_total
+		norm_factor = 1.0/t_total
 	
 		for (g, h) in tfs_heats.items():
 			tfs_heats[g] = h*norm_factor
+
+		return tfs_heats
+
+	@staticmethod
+	def findRegulatorsReport(network, de_file, min_hub=10, nperms=1000):
+		"""
+		Input:
+			file with differential expression (or otherwise scored) values 
+		
+		Returns:
+			A hash of master regulators, with signed, weighted scores normalized
+			so that absolute values sum to 1.
+		"""
+		scores, signs = parseHeats(de_file)
+		mrObj = ActivityScores(network, scores, min_hub=min_hub)
+		if len(mrObj.candidates) == 0:
+			raise Exception("Error: no canidate hubs at this min cutoff")
+		# perform 1000 random permutations of the data to get significance scores for each
+		result = mrObj.scoreCandidates(nperms)
+		
+		tfs_heats = {}
+		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
+			pval = result[1]
+			heat = result[0]
+			tfs_heats[tf] = (pval, heat)
+
+		t_total = 0
+		for (g, h) in tfs_heats.items():
+			t_total += abs(float(h[1]))
+
+		# normalize abs values to sum to 1	
+		norm_factor = 1.0/t_total
+	
+		for (g, h) in tfs_heats.items():
+			tfs_heats[g] = (h[0], h[1]*norm_factor)
 
 		return tfs_heats
 
