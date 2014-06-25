@@ -30,6 +30,7 @@ network_nodes = getNetworkNodes(network)
 sys.stderr.write("Parsing Network File..\n")
 tfs_heats = ActivityScores.findRegulatorsReport(network, opts.d_expr, min_hub=opts.min_hub, nperms=opts.permutations)
 
+print "\t".join(["Regulator", "Pval", "BY Adjusted Pval", "Heat Fraction"])
 for node in tfs_heats:
 	print node+"\t"+"\t".join([str(v) for v in tfs_heats[node]])
 

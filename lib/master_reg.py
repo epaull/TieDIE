@@ -125,10 +125,12 @@ class ActivityScores:
 		result = mrObj.scoreCandidates(nperms)
 		
 		tfs_heats = {}
+		all_pvals = []
 		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
 			pval = result[1]
 			heat = result[0]
 			tfs_heats[tf] = (pval, heat)
+			all_pvals.append(pval)
 
 		t_total = 0
 		for (g, h) in tfs_heats.items():
@@ -140,7 +142,47 @@ class ActivityScores:
 		for (g, h) in tfs_heats.items():
 			tfs_heats[g] = (h[0], h[1]*norm_factor)
 
+		# get BHFDRs
+		corrected_p = ActivityScores.getBHYfdr(all_pvals)
+		for (tf, heat) in sorted(tfs_heats.items(), key=lambda t: t[1][0]):
+			pval = heat[0]	
+			corrected = corrected_p[pval]
+			tfs_heats[tf] = (heat[0], corrected, heat[1])
+		
 		return tfs_heats
+
+		bfdr_neg = {}
+
+	@staticmethod
+	def getBHYfdr(pvals):
+		# BHY-FDR procedure:
+		m = float(len(pvals)*len(pvals))
+		# try a 0.1 fdr
+		pvals = sorted(pvals)
+		corrected_vals = [1 for i in range(0, len(pvals))]
+		for x in range(0, 20):
+
+			alpha = x / 20.0
+			# sort by p-value, then step through k=1... such that the equation is satisfied
+			# Doing the Yekutieli procedure, where positive dependence is assumed
+			k = 1
+			i = 0
+			for pval in pvals:
+
+				if float(pval) > (k*alpha)/m:
+					break
+
+				if alpha < corrected_vals[i]:
+					corrected_vals[i] = alpha
+
+				k += 1
+				i += 1
+		
+		ch = {}
+		for i in range(0, len(pvals)):
+			ch[pvals[i]] = corrected_vals[i]
+
+		return ch
 
 	@staticmethod
 	def getPval(real, background):
