@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<properties>
+						<bundle.symbolicName>org.cytoscape.TieDie</bundle.symbolicName>
+		<bundle.namespace>org.cytoscape.tiedie</bundle.namespace>
+	</properties>
+
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.cytoscape</groupId>
+	<artifactId>TieDIE</artifactId>
+	<version>1.0</version>
+
+			<name>TieDIE</name>
+	
+	<packaging>bundle</packaging>
+
+	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+		</resources>
+		<!-- Cytoscape requires Java 1.6 -->
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
+				<executions>
+					<execution>
+						<id>default-testCompile</id>
+						<phase>test-compile</phase>
+						<goals>
+							<goal>testCompile</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>default-compile</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+					<optimize>true</optimize>
+					<showWarnings>true</showWarnings>
+					<showDeprecation>true</showDeprecation>
+					<compilerArguments>
+						<Xmaxwarns>10000</Xmaxwarns>
+						<Xmaxerrs>10000</Xmaxerrs>
+					</compilerArguments>
+				</configuration>
+			</plugin>
+			
+			<!-- Generates the OSGi metadata based on the osgi.bnd file. -->
+			<plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<version>2.3.7</version>
+				<extensions>true</extensions>
+				<configuration>
+					<instructions>
+												<Bundle-SymbolicName>${bundle.symbolicName}</Bundle-SymbolicName>
+						<Bundle-Version>${project.version}</Bundle-Version>
+                                                <Export-Package>${bundle.namespace},com.google.gson.*</Export-Package>
+						<Private-Package>${bundle.namespace}.internal.*</Private-Package>
+						<Bundle-Activator>${bundle.namespace}.internal.CyActivator</Bundle-Activator>
+                                                <Embed-Dependency>jama;inline=true</Embed-Dependency>
+        <Import-Package>*;resolution:=optional</Import-Package>
+											</instructions>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<!-- Links to the Cytoscape Maven repositories. -->
+	<repositories>
+		<repository>
+			<id>cytoscape_snapshots</id>
+			<snapshots>
+			</snapshots>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<name>Cytoscape Snapshots</name>
+			<url>http://code.cytoscape.org/nexus/content/repositories/snapshots/</url>
+		</repository>
+		<repository>
+			<id>cytoscape_releases</id>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+			<releases>
+			</releases>
+			<name>Cytoscape Releases</name>
+			<url>http://code.cytoscape.org/nexus/content/repositories/releases/</url>
+		</repository>
+	</repositories>
+
+	<!-- Dependencies needed to compile this project. -->
+	<dependencies>
+
+		<!-- Logging -->
+	 <dependency>
+	  <groupId>${project.groupId}</groupId>
+	  <artifactId>api-parent</artifactId>
+	  <version>3.0.0</version>
+	  <type>pom</type>
+	 </dependency>
+	 
+	 <dependency>
+	  <groupId>${project.groupId}</groupId>
+	  <artifactId>app-api</artifactId>
+	  <version>3.0.0</version>
+	  <classifier>jar-with-dependencies</classifier>
+	 </dependency>
+	 <dependency>
+	  <groupId>${project.groupId}</groupId>
+	  <artifactId>application-api</artifactId>
+	  <version>3.0.0</version>
+	  <type>pom</type>
+	 </dependency>
+	 <dependency>
+	  <groupId>${project.groupId}</groupId>
+	  <artifactId>swing-application-api</artifactId>
+	  <version>3.0.0</version>
+	  <type>pom</type>
+	 </dependency>
+	 <dependency>
+	  <groupId>${project.groupId}</groupId>
+	  <artifactId>swing-app-api</artifactId>
+	  <version>3.0.0</version>
+	  <classifier>jar-with-dependencies</classifier>
+	 </dependency>
+	 <dependency>
+	  <groupId>junit</groupId>
+	  <artifactId>junit</artifactId>
+	  <version>4.11</version>
+	 </dependency>
+	 <dependency>
+	  <groupId>javax.servlet</groupId>
+	  <artifactId>javax.servlet-api</artifactId>
+	  <version>3.1-b05</version>
+	 </dependency>
+	 <dependency>
+	  <groupId>org.swinglabs</groupId>
+	  <artifactId>swing-layout</artifactId>
+	  <version>1.0.3</version>
+	 </dependency>
+	 <dependency>
+	  <groupId>org.osgi</groupId>
+	  <artifactId>org.osgi.core</artifactId>
+	  <version>4.2.0</version>
+	 </dependency>
+	 <dependency>
+	  <groupId>gov.nist.math</groupId>
+	  <artifactId>jama</artifactId>
+	  <version>1.0.3</version>
+	 </dependency>
+         <dependency>
+	  <groupId>com.google.code.gson</groupId>
+	  <artifactId>gson</artifactId>
+	  <version>2.2.2</version>
+	  <scope>provided</scope>
+	 </dependency>
+	 <dependency>
+	  <groupId>org.jblas</groupId>
+	  <artifactId>jblas</artifactId>
+	  <version>1.2.3</version>
+	 </dependency>
+	     
+        
+        </dependencies>
+        
+       
+         
+</project>
