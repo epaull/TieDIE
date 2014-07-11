@@ -1,6 +1,9 @@
 package org.cytoscape.tiedie.internal;
 
 import java.util.Properties;
+
+import org.osgi.framework.BundleContext;
+
 import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.application.swing.CySwingApplication;
 import org.cytoscape.model.CyNetworkFactory;
@@ -9,12 +12,14 @@ import org.cytoscape.service.util.AbstractCyActivator;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.view.model.CyNetworkViewFactory;
 import org.cytoscape.view.model.CyNetworkViewManager;
-import org.osgi.framework.BundleContext;
+
+
+
 
 /**
  * @author SrikanthB
  * 
- * CyActivator is the entry point of execution
+ * CyActivator is the entry point of execution of app
  */
 
 

@@ -1,6 +1,7 @@
 package org.cytoscape.tiedie.internal;
 
 import java.util.Properties;
+
 import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.application.swing.CySwingApplication;
 import org.cytoscape.application.swing.CytoPanel;
@@ -14,6 +15,7 @@ import org.cytoscape.view.model.CyNetworkView;
 /**
  *
  * @author SrikanthB
+ * TieDieCore activates TieDieStartMenu
  */
 
 

@@ -2,16 +2,20 @@
 package org.cytoscape.tiedie.internal.logic;
 
 import Jama.Matrix;
+
+import org.jblas.DoubleMatrix;
+import org.jblas.MatrixFunctions;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
 import org.cytoscape.model.CyTable;
-import org.jblas.DoubleMatrix;
-import org.jblas.MatrixFunctions;
+
 
 /**
  * @author SrikanthB

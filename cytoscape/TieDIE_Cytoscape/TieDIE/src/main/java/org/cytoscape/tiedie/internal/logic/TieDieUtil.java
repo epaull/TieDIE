@@ -3,6 +3,7 @@ package org.cytoscape.tiedie.internal.logic;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.cytoscape.model.CyNode;
 
 /**

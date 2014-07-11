@@ -1,6 +1,7 @@
 package org.cytoscape.tiedie.internal;
 
 import java.awt.event.ActionEvent;
+
 import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.application.swing.AbstractCyAction;
 import org.cytoscape.application.swing.CySwingApplication;
@@ -10,6 +11,7 @@ import org.cytoscape.application.swing.CySwingApplication;
  * 
  *  A new menu item named "TieDIE" is created under Apps section of Cytoscape 
  */
+
 public class TieDieMenuAction extends AbstractCyAction{
     
     public CyApplicationManager cyApplicationManager;

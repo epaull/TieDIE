@@ -3,6 +3,10 @@ package org.cytoscape.tiedie.internal;
 import java.awt.Component;
 import java.util.Collection;
 import javax.swing.Icon;
+import javax.swing.BorderFactory;
+import javax.swing.border.Border;
+import javax.swing.JCheckBox;
+
 import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.application.swing.CySwingApplication;
 import org.cytoscape.application.swing.CytoPanelComponent;
@@ -14,33 +18,35 @@ import org.cytoscape.tiedie.internal.logic.TieDieLogicThread;
 import org.cytoscape.view.model.CyNetworkView;
 
 
-import javax.swing.BorderFactory;
-import javax.swing.border.Border;
 
-import javax.swing.JCheckBox;
 /**
  *
  * @author SrikanthB
  * Creates new form TieDieStartMenu
+ * Start button activates TieDieLogicThread.java which keeps the ball rolling
  */
 
 public class TieDieStartMenu extends javax.swing.JPanel implements CytoPanelComponent {
     
+    private TieDieCore tiediecore;
+    public TieDieLogicThread logicThread;
     CyApplicationManager cyApplicationManager;
     CySwingApplication cyDesktopService;
     CyNetwork currentnetwork;
     CyNetworkView currentnetworkview;
-    private TieDieCore tiediecore;
     public CyActivator cyactivator;
-    public TieDieLogicThread logicThread;
+    
     
    
     public TieDieStartMenu(CyActivator cyactivator,TieDieCore tiediecore) {
-        initComponents();
         this.cyactivator = cyactivator;
         this.tiediecore = tiediecore;
         cyApplicationManager = tiediecore.getCyApplicationManager();
+        this.currentnetwork = cyApplicationManager.getCurrentNetwork();
+        this.currentnetworkview = cyApplicationManager.getCurrentNetworkView();
         cyDesktopService = tiediecore.getCyDesktopService();
+        initComponents();
+       
     }
     
     public Icon getIcon() {
@@ -135,7 +141,7 @@ public class TieDieStartMenu extends javax.swing.JPanel implements CytoPanelComp
                                 .addComponent(helpButton, javax.swing.GroupLayout.PREFERRED_SIZE, 63, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(exitButton))
-                            .addComponent(statusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 85, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                            .addComponent(statusLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addContainerGap(48, Short.MAX_VALUE))
         );
         mainPanelLayout.setVerticalGroup(
@@ -144,10 +150,10 @@ public class TieDieStartMenu extends javax.swing.JPanel implements CytoPanelComp
                 .addComponent(headingLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 28, Short.MAX_VALUE)
                 .addComponent(otherPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(30, 30, 30)
-                .addComponent(startButton, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(10, 10, 10)
-                .addComponent(statusLabel)
+                .addGap(18, 18, 18)
+                .addComponent(startButton, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(statusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(helpButton)
@@ -165,7 +171,7 @@ public class TieDieStartMenu extends javax.swing.JPanel implements CytoPanelComp
 
         for(CyColumn presentColumn : columnCollection){
             presentColumnName = presentColumn.getName();
-            JCheckBox check = new JCheckBox("columnName");
+            JCheckBox check = new JCheckBox(presentColumnName);
             otherPanel.add(check);
         }
 
@@ -204,9 +210,7 @@ public class TieDieStartMenu extends javax.swing.JPanel implements CytoPanelComp
     
     private void startButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startButtonActionPerformed
         statusLabel.setText("Started executing TieDIE");
-     
-        currentnetworkview = cyApplicationManager.getCurrentNetworkView();
-        currentnetwork = currentnetworkview.getModel();
+        
         logicThread = new TieDieLogicThread(currentnetwork, currentnetworkview);
         logicThread.start();
         

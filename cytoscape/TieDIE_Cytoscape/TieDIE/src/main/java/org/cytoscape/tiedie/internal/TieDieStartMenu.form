@@ -58,7 +58,7 @@
                                   <EmptySpace max="32767" attributes="0"/>
                                   <Component id="exitButton" min="-2" max="-2" attributes="0"/>
                               </Group>
-                              <Component id="statusLabel" alignment="0" min="-2" pref="85" max="-2" attributes="0"/>
+                              <Component id="statusLabel" alignment="0" max="32767" attributes="0"/>
                           </Group>
                       </Group>
                   </Group>
@@ -72,10 +72,10 @@
                   <Component id="headingLabel" min="-2" max="-2" attributes="0"/>
                   <EmptySpace pref="28" max="32767" attributes="0"/>
                   <Component id="otherPanel" min="-2" max="-2" attributes="0"/>
-                  <EmptySpace min="-2" pref="30" max="-2" attributes="0"/>
-                  <Component id="startButton" min="-2" pref="32" max="-2" attributes="0"/>
-                  <EmptySpace min="-2" pref="10" max="-2" attributes="0"/>
-                  <Component id="statusLabel" min="-2" max="-2" attributes="0"/>
+                  <EmptySpace type="separate" max="-2" attributes="0"/>
+                  <Component id="startButton" min="-2" pref="36" max="-2" attributes="0"/>
+                  <EmptySpace type="separate" max="-2" attributes="0"/>
+                  <Component id="statusLabel" min="-2" pref="13" max="-2" attributes="0"/>
                   <EmptySpace type="separate" max="-2" attributes="0"/>
                   <Group type="103" groupAlignment="3" attributes="0">
                       <Component id="helpButton" alignment="3" min="-2" max="-2" attributes="0"/>
@@ -113,7 +113,7 @@
         </Component>
         <Container class="javax.swing.JPanel" name="otherPanel">
           <AuxValues>
-            <AuxValue name="JavaCodeGenerator_allCodePost" type="java.lang.String" value="// Customized code from here&#xa;CyTable nodeTable = currentnetwork.getDefaultNodeTable();&#xa;Collection&lt;CyColumn&gt; columnCollection = nodeTable.getColumns();&#xa;&#xa;String presentColumnName;&#xa;Border border = BorderFactory.createTitledBorder(&quot;Select columns for diffusion&quot;);&#xa;otherPanel.setBorder(border);&#xa;&#xa;for(CyColumn presentColumn : columnCollection){&#xa;    presentColumnName = presentColumn.getName();&#xa;    JCheckBox check = new JCheckBox(&quot;columnName&quot;);&#xa;    otherPanel.add(check);&#xa;}&#xa;&#xa;&#xa;// Customized code ends here"/>
+            <AuxValue name="JavaCodeGenerator_allCodePost" type="java.lang.String" value="// Customized code from here&#xa;CyTable nodeTable = currentnetwork.getDefaultNodeTable();&#xa;Collection&lt;CyColumn&gt; columnCollection = nodeTable.getColumns();&#xa;&#xa;String presentColumnName;&#xa;Border border = BorderFactory.createTitledBorder(&quot;Select columns for diffusion&quot;);&#xa;otherPanel.setBorder(border);&#xa;&#xa;for(CyColumn presentColumn : columnCollection){&#xa;    presentColumnName = presentColumn.getName();&#xa;    JCheckBox check = new JCheckBox(presentColumnName);&#xa;    otherPanel.add(check);&#xa;}&#xa;&#xa;&#xa;// Customized code ends here"/>
           </AuxValues>
 
           <Layout>

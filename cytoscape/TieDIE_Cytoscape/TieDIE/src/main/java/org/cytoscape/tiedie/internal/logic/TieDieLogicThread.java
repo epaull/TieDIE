@@ -1,6 +1,7 @@
 package org.cytoscape.tiedie.internal.logic;
 
 import java.util.List;
+
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyTable;
