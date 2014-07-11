@@ -27,7 +27,9 @@ TieDIE_Cytoscape
 [3] - https://github.com/srikanthBezawada/TieDIE_Cytoscape.git
 
 [4] - http://chianti.ucsd.edu/cytoscape-3.0.0/API/
+      
       http://chianti.ucsd.edu/cytoscape-3.0.1/API/
+      
       http://code.cytoscape.org/jenkins/job/cytoscape-3-javadoc/javadoc/
       
 [5] - http://wiki.cytoscape.org/Cytoscape_3/AppDeveloper/
@@ -38,8 +40,19 @@ TieDIE_Cytoscape
 
 
 
+## TieDIE References
+[t1] - http://bioinformatics.oxfordjournals.org/content/29/21/2757.short
+
+[t2] - https://sysbiowiki.soe.ucsc.edu/tiedie
+
+[t3] - https://github.com/epaull/TieDIE  (There is a cytoscape branch which has the code for tiedie app. hostedthere as well)
+
+
+
 ## About this project
-TieDIE  algorithm finds "subnetworks" connecting genomic perturbations to transcriptional changes in large gene interaction networks. This algorithm is useful in optimizing cancer treatment by viewing cancer from a gene network perspective thus enhancing our understanding of disease initiation, progression and therapy. This project deploys TieDIE algorithm into cytoscape as an app. 
+
+=======
+TieDIE  algorithm [t1] finds "subnetworks" connecting genomic perturbations to transcriptional changes in large gene interaction networks. This algorithm is useful in optimizing cancer treatment by viewing cancer from a gene network perspective thus enhancing our understanding of disease initiation, progression and therapy. This project deploys TieDIE algorithm into cytoscape as an app. 
 
 This is a GSOC 2014 project developed by Srikanth.B under the supervision of Evan Paull. 
 
