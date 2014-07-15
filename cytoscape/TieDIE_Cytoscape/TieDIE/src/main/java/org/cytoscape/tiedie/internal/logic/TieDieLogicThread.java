@@ -1,9 +1,13 @@
 package org.cytoscape.tiedie.internal.logic;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
+import org.cytoscape.model.CyRow;
 import org.cytoscape.model.CyTable;
 import org.cytoscape.view.model.CyNetworkView;
 
@@ -66,18 +70,34 @@ public class TieDieLogicThread extends Thread {
         HeatVector downstreamheatVectorDiffused = new HeatVector(totalnodecount);
         downstreamheatVectorDiffused = Kernel.diffuse(downstreamheatVector, diffusionKernel); 
         
+        // Extract the maps with only inital sets and their diffused values
+        Map upnodeScoreMapDiffused = getDiffusedMap("upstreamheat",nodeList, nodeTable, upstreamheatVector.nodeHeatSet, upstreamheatVectorDiffused);
+        Map downnodeScoreMapDiffused = getDiffusedMap("downstreamheat",nodeList, nodeTable, downstreamheatVector.nodeHeatSet, downstreamheatVectorDiffused);
+        
         sizeFactor = 1;
-        linker_cutoff = TieDieUtil.findLinkerCutoff(nodeList, upstreamheatVector.getnodeHeatSet(), downstreamheatVector.getnodeHeatSet(), upstreamheatVectorDiffused, downstreamheatVectorDiffused, sizeFactor);
+        linker_cutoff = TieDieUtil.findLinkerCutoff(nodeList,upstreamheatVector.getnodeHeatSet(), downstreamheatVector.getnodeHeatSet(), upnodeScoreMapDiffused, downnodeScoreMapDiffused, sizeFactor);
         // nodeList is the extra parameter to existing tiedie  https://github.com/epaull/TieDIE/blob/master/lib/tiedie_util.py#L336
         
         
-        
-        
-        
-        
+      
         
     } 
     
-     
+    public Map getDiffusedMap(String columnName, List<CyNode> nodeList, CyTable nodeTable, Set<CyNode> nodeHeatSet , HeatVector diffusedVector ){
+        Map sameSetScoreDiffused = new HashMap<CyNode, Double>();
+        int count = 0;
+        double diffusedScore;
+        
+        for (CyNode root : nodeList) { // nodeList is always accessed in a same order
+            CyRow row = nodeTable.getRow(root.getSUID());
+            if (row.get(columnName, Double.class) != null) {
+                diffusedScore = diffusedVector.heatVectorOfScores.get(0, count);
+                sameSetScoreDiffused.put(root, diffusedScore);
+            }
+
+            count++;
+        }
+        return sameSetScoreDiffused;
+    } 
     
 }

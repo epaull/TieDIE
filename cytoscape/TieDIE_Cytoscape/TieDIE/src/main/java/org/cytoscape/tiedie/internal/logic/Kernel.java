@@ -20,7 +20,8 @@ import org.cytoscape.model.CyTable;
 
 /**
  * @author SrikanthB
-      "HeatKernel as a substitution for pageRank"
+    -> "HeatKernel as a substitution for pageRank"
+    -> “diffusion” kernel describing the ?ow of information in the master network
     -> Heat diffusion is actually the average of all random walks.
     -> PageRank is also a random walk model, but it continues until an equilibrium is reached whereas 
        the heat diffusion stops at that timepoint t, which we set to 0.1 (based on empirical evidence)

@@ -32,6 +32,7 @@ public class HeatVector {
     int numOfColumns;
     public Set<CyNode> nodeHeatSet;
     public Map nodeScoreMap;
+
     
     // HeatValue and Score are the same 
     
@@ -53,6 +54,8 @@ public class HeatVector {
     public Map getnodeScoreMap(){
         return nodeScoreMap;
     }
+    
+   
     
     // Getter methods end here
    
@@ -86,4 +89,9 @@ public class HeatVector {
         return this;
     }
 
+   
+
+    
+     
+    
 }

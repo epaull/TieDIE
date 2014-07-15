@@ -10,7 +10,6 @@ import java.util.Set;
 
 import org.cytoscape.model.CyNode;
 
-import static org.cytoscape.tiedie.internal.logic.Kernel.getnodeDiffusedScoreMap;
 
 /**
  *
@@ -21,153 +20,119 @@ import static org.cytoscape.tiedie.internal.logic.Kernel.getnodeDiffusedScoreMap
 // Check that variables are not declared inside loop & check all maps,sets declarations
 public class TieDieUtil {
     
-    public static double findLinkerCutoff(List<CyNode> nodeList, Set<CyNode> upstreamnodeheatSet, Set<CyNode> downstreamnodeSet,HeatVector upstreamheatVectorDiffused,HeatVector downstreamheatVectorDiffused, double sizeFactor){
-        double linker_cutoff;
-        if(downstreamnodeSet == null){
-            linker_cutoff = findLinkerCutoffSingle(nodeList, upstreamnodeheatSet, upstreamheatVectorDiffused, sizeFactor);
-        }
+      public static double findLinkerCutoff(List<CyNode> nodeList, Set<CyNode> upstreamnodeheatSet, Set<CyNode> downstreamnodeSet, Map upnodeScoreMapDiffused, Map downnodeScoreMapDiffused, double sizeFactor){
+          double linker_cutoff;
+          
+          if(downnodeScoreMapDiffused == null) // hotnet algorithm
+          {
+              linker_cutoff = findLinkerCutoffSingle(nodeList, upstreamnodeheatSet, upnodeScoreMapDiffused, sizeFactor);
+          }
+          else
+          {
+              linker_cutoff = findLinkerCutoffMulti(nodeList, upstreamnodeheatSet, downstreamnodeSet, upnodeScoreMapDiffused, downnodeScoreMapDiffused, sizeFactor);
+          }
+          
+          return linker_cutoff;
+      } 
+    
+    
+      public static double findLinkerCutoffSingle(List<CyNode> nodeList, Set<CyNode> upstreamnodeSet, Map upnodeScoreMapDiffused, double sizeFactor) {
+          double linker_cutoff=0;
+          double targetSize;
+          double EPSILON = 0.0001;
+          Map nodeDiffusedScoreMapSorted;
+          Set<CyNode> diffusedSet;
+      
+          targetSize = (sizeFactor)*(upstreamnodeSet.size());
+          nodeDiffusedScoreMapSorted = MapUtil.sortByValue(upnodeScoreMapDiffused);
+          diffusedSet = new HashSet<CyNode>();
+          
+          Iterator<Map.Entry<CyNode, Double>> iterator = nodeDiffusedScoreMapSorted.entrySet().iterator() ;
+          while(iterator.hasNext()){
+              Entry<CyNode, Double> entry = iterator.next();
+              linker_cutoff = entry.getValue()+EPSILON ;
+              diffusedSet.add(entry.getKey());
+              if((upstreamnodeSet.size())-(diffusedSet.size()) > targetSize)
+              break;
+          }
+          return linker_cutoff;
+   
+      }
+    
+    
+       public static double findLinkerCutoffMulti(List<CyNode> nodeList, Set<CyNode> upstreamnodeSet, Set<CyNode> downstreamnodeSet, Map upnodeScoreMapDiffused, Map downnodeScoreMapDiffused, double sizeFactor){
+           double linker_cutoff=0;
+           double EPSILON = 0.0001;
+           double h, size_frac;
+           Map upScoreMapDiffusedSorted,downScoreMapDiffusedSorted;
+           //First linkers are found and are then filtered linkers
+           Map linkers_nodeScoreMapSorted,linkers_nodeScoreMap, filtered_linkersNodeScoreMap;
+           upScoreMapDiffusedSorted = MapUtil.sortByValue(upnodeScoreMapDiffused);
+           downScoreMapDiffusedSorted = MapUtil.sortByValue(downnodeScoreMapDiffused);
            
-        else {
-            linker_cutoff = findLinkerCutoffMulti(nodeList, upstreamnodeheatSet, downstreamnodeSet, upstreamheatVectorDiffused, downstreamheatVectorDiffused, sizeFactor);
-        }
-         
-        return linker_cutoff;
-    }
-    
-    
-    public static double findLinkerCutoffSingle(List<CyNode> nodeList, Set<CyNode> upstreamnodeSet, HeatVector upstreamheatVectorDiffused, double sizeFactor) {
-        double linker_cutoff=0;
-        double target_size;
-        double EPSILON = 0.0001;
-        
-        target_size = (sizeFactor)*(upstreamnodeSet.size());
-        Map nodeDiffusedScoreMap, nodeDiffusedScoreMapSorted;
-        Set<CyNode> diffused_node_set;
-        
-        nodeDiffusedScoreMap = Kernel.getnodeDiffusedScoreMap(upstreamheatVectorDiffused, nodeList);
-        nodeDiffusedScoreMapSorted = MapUtil.sortByValue(nodeDiffusedScoreMap);
-        
-        diffused_node_set = new HashSet<CyNode>();
-        Iterator<Map.Entry<CyNode, Double>> iterator = nodeDiffusedScoreMapSorted.entrySet().iterator() ;
-        
-        while(iterator.hasNext()){
-            Entry<CyNode, Double> entry = iterator.next();
-            linker_cutoff = entry.getValue()+EPSILON ;
-            diffused_node_set.add(entry.getKey());
-            if((upstreamnodeSet.size())-(diffused_node_set.size()) > target_size)
-            break;
-        }
-        
-        return linker_cutoff;
-        
-        /**
-        Set<Map.Entry<CyNode, Double>> entrySet = nodeDiffusedScoreMapSorted.entrySet();
-        Set<CyNode> diffused_node_set = new HashSet<CyNode>();
-             
-        for (Entry entry : entrySet) {
-            linker_cutoff = (Double)entry.getValue()+EPSILON ;
-            diffused_node_set.add((CyNode)entry.getKey());
-            if((upstreamnodeheatSet.size())-(diffused_node_set.size()) > target_size)
-            break;
-        } 
-        return linker_cutoff;
-        */
-        
-    }
-    
-    
-    
-    public static double findLinkerCutoffMulti(List<CyNode> nodeList, Set<CyNode> upstreamnodeSet, Set<CyNode> downstreamnodeSet, HeatVector upstreamheatVectorDiffused, HeatVector downstreamheatVectorDiffused, double sizeFactor) {
-        double linker_cutoff=0;
-        double EPSILON = 0.0001;
-        double h, size_frac;
-        
-        Map linkers_NodeScoreMapSorted,linkers_NodeScoreMap, filtered_linkersNodeScoreMap;
-        Map upstreamnodeDiffusedScoreMap,downstreamnodeDiffusedScoreMap;
-        Map upstreamnodeDiffusedScoreMapSorted, downstreamnodeDiffusedScoreMapSorted;
-        
-        upstreamnodeDiffusedScoreMap = Kernel.getnodeDiffusedScoreMap(upstreamheatVectorDiffused, nodeList);
-        downstreamnodeDiffusedScoreMap = Kernel.getnodeDiffusedScoreMap(downstreamheatVectorDiffused, nodeList);
-        upstreamnodeDiffusedScoreMapSorted = MapUtil.sortByValue(upstreamnodeDiffusedScoreMap);
-        downstreamnodeDiffusedScoreMapSorted = MapUtil.sortByValue(downstreamnodeDiffusedScoreMap);
-        
-        linkers_NodeScoreMap = findLinkersMap(nodeList, upstreamheatVectorDiffused, downstreamheatVectorDiffused);
-        filtered_linkersNodeScoreMap = findFilteredLinkersMap(linkers_NodeScoreMap, 1);
-        
-        linkers_NodeScoreMapSorted = MapUtil.sortByValue(linkers_NodeScoreMap);
-        Iterator<Map.Entry<CyNode, Double>> iterator = linkers_NodeScoreMapSorted.entrySet().iterator() ;
-        
-  
-        while(iterator.hasNext()){
-            Entry<CyNode, Double> entry = iterator.next();
-            h = entry.getValue();
-            linker_cutoff = h-EPSILON;
-            //size_frac = scoreLinkers(upstreamnodeDiffusedScoreMap, upstreamnodeDiffusedScoreMapSorted,downstreamnodeDiffusedScoreMap, downstreamnodeDiffusedScoreMapSorted ,upstreamnodeSet,downstreamnodeSet , linker_cutoff , sizeFactor);
-        }
-        
-        
-        return linker_cutoff;
-    }
-       
-    /**
-         "Z function" is used to combine score vectors for two input sets according to literature
-         "filterLinkers" is the "Z function" of TieDIE python implementation & is done in 2 functions here
+           linkers_nodeScoreMap = findLinkersMap(nodeList, upstreamnodeSet, downstreamnodeSet, upnodeScoreMapDiffused, downnodeScoreMapDiffused);
+           filtered_linkersNodeScoreMap = findFilteredLinkersMap(linkers_nodeScoreMap, 1);
+           
+           linkers_nodeScoreMapSorted = MapUtil.sortByValue(linkers_nodeScoreMap);
+           Iterator<Map.Entry<CyNode, Double>> iterator = linkers_nodeScoreMapSorted.entrySet().iterator() ;
+           
+           while(iterator.hasNext()){
+               Entry<CyNode, Double> entry = iterator.next();
+               h = entry.getValue();
+               linker_cutoff = h-EPSILON;
+               //size_frac = scoreLinkers(upstreamnodeDiffusedScoreMap, upstreamnodeDiffusedScoreMapSorted,downstreamnodeDiffusedScoreMap, downstreamnodeDiffusedScoreMapSorted ,upstreamnodeSet,downstreamnodeSet , linker_cutoff , sizeFactor);
+           }
+           
+           return linker_cutoff;
+       }
+       /*
+          "Z function" is used to combine score vectors for two input sets according to literature
+          "filterLinkers" is the "Z function" of TieDIE python implementation & is done in 2 functions here
             1. findLinkerMap returns all linker nodes,scores
             2. findFilteredMap returns all linker nodes whose scores > cutoff
-    */
-   
-    public static Map findLinkersMap(List<CyNode> nodeList, HeatVector upstreamheatVectorDiffused, HeatVector downstreamheatVectorDiffused){
-       
-        Map LinkersNodeScoreMap;
-        double min_heat,x,y;
-        
-        if(downstreamheatVectorDiffused == null){
-            LinkersNodeScoreMap = getnodeDiffusedScoreMap(upstreamheatVectorDiffused, nodeList);
-            return LinkersNodeScoreMap;
-        }
-        LinkersNodeScoreMap = new HashMap<CyNode,Double>();
-        for(CyNode root : upstreamheatVectorDiffused.nodeHeatSet)
-        {
-            if(downstreamheatVectorDiffused.nodeHeatSet.contains(root)==false)
-            continue;
-            x = (Double)getnodeDiffusedScoreMap(upstreamheatVectorDiffused, nodeList).get(root);
-            y = (Double)getnodeDiffusedScoreMap(downstreamheatVectorDiffused, nodeList).get(root);
-            min_heat = Math.min(x,y);
-            LinkersNodeScoreMap.put(root,min_heat);
-        }
-        return LinkersNodeScoreMap;
-    }
+       */
+       public static Map findLinkersMap(List<CyNode> nodeList,Set<CyNode> upstreamnodeSet, Set<CyNode> downstreamnodeSet,Map upnodeScoreMapDiffused, Map downnodeScoreMapDiffused){
+           Map linkers_nodeScoreMap;
+           double min_heat,x,y;
+           
+           linkers_nodeScoreMap = new HashMap<CyNode,Double>();
+           if(downnodeScoreMapDiffused == null){
+               return upnodeScoreMapDiffused;
+           }
+           for(CyNode root :upstreamnodeSet ){
+               if(downstreamnodeSet.contains(root)==false)
+               continue;
+               x = (Double)upnodeScoreMapDiffused.get(root);
+               x = (double)x;
+               y = (Double)downnodeScoreMapDiffused.get(root);
+               y = (double)y;
+               min_heat = Math.min(x,y);
+               linkers_nodeScoreMap.put(root, min_heat);
+               
+            // if(downstreamheatVectorDiffused.nodeHeatSet.contains(root)==false)
+            // continue;
+            // x = (Double)getnodeDiffusedScoreMap(upstreamheatVectorDiffused, nodeList).get(root);
+            // y = (Double)getnodeDiffusedScoreMap(downstreamheatVectorDiffused, nodeList).get(root);
+            // min_heat = Math.min(x,y);
+            // linkers_nodeScoreMap.put(root,min_heat);
+           }
+           return linkers_nodeScoreMap;
+       }
     
-   
-    public static Map findFilteredLinkersMap(Map LinkersNodeScoreMap, double cutoff){// see why not linker_
-        Map filtered_linkersNodeScoreMap = new HashMap<CyNode, Double>();
-        Iterator<Map.Entry<CyNode, Double>> iterator = LinkersNodeScoreMap.entrySet().iterator() ;
+       public static Map findFilteredLinkersMap(Map linkers_nodeScoreMap, double cutoff){// see why not linker_
+           Map filtered_linkersNodeScoreMap = new HashMap<CyNode, Double>();
+           Iterator<Map.Entry<CyNode, Double>> iterator = linkers_nodeScoreMap.entrySet().iterator() ;
         
-        while(iterator.hasNext()){
-            Entry<CyNode, Double> entry = iterator.next();
-            if(entry.getValue()> cutoff)
-            {
-                filtered_linkersNodeScoreMap.put(entry.getKey(), entry.getValue());
-            }
-        }
+           while(iterator.hasNext()){
+               Entry<CyNode, Double> entry = iterator.next();
+               if(entry.getValue()> cutoff){
+                   filtered_linkersNodeScoreMap.put(entry.getKey(), entry.getValue());
+               }
+           }
         return filtered_linkersNodeScoreMap;
-    }
-   
-    
-    
-    public static double scoreLinkers(){
-        return 0;
-    
-    
-    
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
+       }
+  
+       
+       
+       
 }
