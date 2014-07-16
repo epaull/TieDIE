@@ -169,6 +169,7 @@ public class TieDieStartMenu extends javax.swing.JPanel implements CytoPanelComp
         );
 
         // Customized code from here
+        /*
         CyTable nodeTable = currentnetwork.getDefaultNodeTable();
         Collection<CyColumn> columnCollection = nodeTable.getColumns();
 
@@ -183,7 +184,17 @@ public class TieDieStartMenu extends javax.swing.JPanel implements CytoPanelComp
             checkboxes.add(check);
             otherPanel.add(check);
         }
+        */
 
+        Border border = BorderFactory.createTitledBorder("Select columns for diffusion");
+        otherPanel.setBorder(border);
+        JCheckBox upstreamBox = new JCheckBox("upstreamheat");
+        JCheckBox downstreamBox = new JCheckBox("downstreamheat");
+
+        upstreamBox.setSelected(true);
+        downstreamBox.setSelected(true);
+        otherPanel.add(upstreamBox);
+        otherPanel.add(downstreamBox);
         // Customized code ends here
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);

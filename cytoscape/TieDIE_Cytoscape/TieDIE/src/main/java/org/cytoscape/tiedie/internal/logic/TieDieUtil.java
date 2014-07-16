@@ -18,6 +18,8 @@ import org.cytoscape.model.CyNode;
  */
 
 // Check that variables are not declared inside loop & check all maps,sets declarations
+// Check that reverse sorted
+// Check whenever map is returned
 public class TieDieUtil {
     
       public static double findLinkerCutoff(List<CyNode> nodeList, Set<CyNode> upstreamnodeheatSet, Set<CyNode> downstreamnodeSet, Map upnodeScoreMapDiffused, Map downnodeScoreMapDiffused, double sizeFactor){
@@ -60,31 +62,87 @@ public class TieDieUtil {
       }
     
     
-       public static double findLinkerCutoffMulti(List<CyNode> nodeList, Set<CyNode> upstreamnodeSet, Set<CyNode> downstreamnodeSet, Map upnodeScoreMapDiffused, Map downnodeScoreMapDiffused, double sizeFactor){
+       public static double findLinkerCutoffMulti(List<CyNode> nodeList, Set<CyNode> upstreamnodeSet, Set<CyNode> downstreamnodeSet, Map upScoreMapDiffused, Map downScoreMapDiffused, double sizeFactor){
            double linker_cutoff=0;
            double EPSILON = 0.0001;
            double h, size_frac;
            Map upScoreMapDiffusedSorted,downScoreMapDiffusedSorted;
            //First linkers are found and are then filtered linkers
-           Map linkers_nodeScoreMapSorted,linkers_nodeScoreMap, filtered_linkersNodeScoreMap;
-           upScoreMapDiffusedSorted = MapUtil.sortByValue(upnodeScoreMapDiffused);
-           downScoreMapDiffusedSorted = MapUtil.sortByValue(downnodeScoreMapDiffused);
+           Map linkers_nodeScoreMapSorted,linkers_nodeScoreMap,filtered_linkersNodeScoreMapSorted,filtered_linkersNodeScoreMap;
+           upScoreMapDiffusedSorted = MapUtil.sortByValue(upScoreMapDiffused);
+           downScoreMapDiffusedSorted = MapUtil.sortByValue(downScoreMapDiffused);
            
-           linkers_nodeScoreMap = findLinkersMap(nodeList, upstreamnodeSet, downstreamnodeSet, upnodeScoreMapDiffused, downnodeScoreMapDiffused);
+           linkers_nodeScoreMap = findLinkersMap(nodeList, upstreamnodeSet, downstreamnodeSet, upScoreMapDiffused, downScoreMapDiffused);
            filtered_linkersNodeScoreMap = findFilteredLinkersMap(linkers_nodeScoreMap, 1);
            
            linkers_nodeScoreMapSorted = MapUtil.sortByValue(linkers_nodeScoreMap);
-           Iterator<Map.Entry<CyNode, Double>> iterator = linkers_nodeScoreMapSorted.entrySet().iterator() ;
+           filtered_linkersNodeScoreMapSorted = MapUtil.sortByValue(linkers_nodeScoreMapSorted);
            
+           Iterator<Map.Entry<CyNode, Double>> iterator = linkers_nodeScoreMapSorted.entrySet().iterator() ;
            while(iterator.hasNext()){
                Entry<CyNode, Double> entry = iterator.next();
                h = entry.getValue();
                linker_cutoff = h-EPSILON;
-               //size_frac = scoreLinkers(upstreamnodeDiffusedScoreMap, upstreamnodeDiffusedScoreMapSorted,downstreamnodeDiffusedScoreMap, downstreamnodeDiffusedScoreMapSorted ,upstreamnodeSet,downstreamnodeSet , linker_cutoff , sizeFactor);
+               size_frac = scoreLinkers(upScoreMapDiffused,upScoreMapDiffusedSorted,downScoreMapDiffused,downScoreMapDiffusedSorted,upstreamnodeSet,downstreamnodeSet, linker_cutoff , sizeFactor);
            }
            
            return linker_cutoff;
        }
+       
+       
+       public static double scoreLinkers(Map upScoreMapDiffused,Map upScoreMapDiffusedSorted,Map downScoreMapDiffused,Map downScoreMapDiffusedSorted,Set<CyNode >upstreamnodeSet,Set<CyNode> downstreamnodeSet,double linker_cutoff, double  sizeFactor){
+           Set<CyNode> f1 = null, f2 = null, union = null, intersection = null, connecting = null, initialUnion = null;
+           double size_frac;
+           
+           for(CyNode root: upstreamnodeSet){
+               initialUnion.add(root);
+           }
+           for(CyNode root: downstreamnodeSet){
+               initialUnion.add(root);
+           }
+           
+           Iterator<Map.Entry<CyNode, Double>> iterator1 = upScoreMapDiffusedSorted.entrySet().iterator() ;
+           while(iterator1.hasNext()){
+               Entry<CyNode, Double> entry = iterator1.next();  
+               if(entry.getValue() < linker_cutoff)
+               break;
+               f1.add(entry.getKey());  
+           }
+           
+           Iterator<Map.Entry<CyNode, Double>> iterator2 = downScoreMapDiffusedSorted.entrySet().iterator() ;
+           while(iterator2.hasNext()){
+               Entry<CyNode, Double> entry = iterator2.next();  
+               if(entry.getValue() < linker_cutoff)
+               break;
+               f2.add(entry.getKey());  
+           }
+           
+           for(CyNode root: f1){
+               if(f2.contains(root)==true){
+                   intersection.add(root);
+               }
+               union.add(root);
+           }
+           for(CyNode root: f2){
+               union.add(root);
+           }
+           for(CyNode root: intersection){
+               connecting.add(root);
+           }
+           
+           // Connecting nodes are present in intersection and not in f1 and not in f2
+           for(CyNode root: intersection){
+               if(f1.contains(root)||f2.contains(root)){
+                   connecting.remove(root);
+               }
+           }
+           
+           size_frac = (connecting.size())/(float)(initialUnion.size())/(float)linker_cutoff;
+           
+           return size_frac;      
+       }
+       
+      
        /*
           "Z function" is used to combine score vectors for two input sets according to literature
           "filterLinkers" is the "Z function" of TieDIE python implementation & is done in 2 functions here
@@ -102,19 +160,12 @@ public class TieDieUtil {
            for(CyNode root :upstreamnodeSet ){
                if(downstreamnodeSet.contains(root)==false)
                continue;
-               x = (Double)upnodeScoreMapDiffused.get(root);
+               x = (Double)upnodeScoreMapDiffused.get(root); //check errors here
                x = (double)x;
                y = (Double)downnodeScoreMapDiffused.get(root);
                y = (double)y;
                min_heat = Math.min(x,y);
                linkers_nodeScoreMap.put(root, min_heat);
-               
-            // if(downstreamheatVectorDiffused.nodeHeatSet.contains(root)==false)
-            // continue;
-            // x = (Double)getnodeDiffusedScoreMap(upstreamheatVectorDiffused, nodeList).get(root);
-            // y = (Double)getnodeDiffusedScoreMap(downstreamheatVectorDiffused, nodeList).get(root);
-            // min_heat = Math.min(x,y);
-            // linkers_nodeScoreMap.put(root,min_heat);
            }
            return linkers_nodeScoreMap;
        }
@@ -129,7 +180,7 @@ public class TieDieUtil {
                    filtered_linkersNodeScoreMap.put(entry.getKey(), entry.getValue());
                }
            }
-        return filtered_linkersNodeScoreMap;
+           return filtered_linkersNodeScoreMap;
        }
   
        
