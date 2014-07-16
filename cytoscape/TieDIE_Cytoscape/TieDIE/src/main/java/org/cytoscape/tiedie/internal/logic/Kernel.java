@@ -6,10 +6,7 @@ import Jama.Matrix;
 import org.jblas.DoubleMatrix;
 import org.jblas.MatrixFunctions;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
@@ -39,13 +36,36 @@ public class Kernel {
     */
     
     private static final double t = 0.1;
+    public int totalnodecount;
+    public CyNetwork currentnetwork;
+    public List<CyNode> nodeList;
+    public CyTable edgeTable;
     
-
+    private double[][] adjacencyMatrixOfNetwork;
+    private double[][] degreeMatrixOfNetwork;
+    private double[][] laplacianMatrixOfNetwork;
+    private double[][] diffusionKernelOfNetwork;
+    
+    public Kernel(CyNetwork network){
+        this.currentnetwork = network;
+        this.nodeList = currentnetwork.getNodeList();
+        this.totalnodecount = nodeList.size();
+        this.edgeTable = currentnetwork.getDefaultEdgeTable();
+    }
+    
+    
     public double getTime(){
         return t;
     }
     
-     /*
+    public double[][] getadjacencyMatrixOfNetwork(){
+        return adjacencyMatrixOfNetwork;
+    }
+    
+    public double[][] diffusionKernelOfNetwork(){
+        return diffusionKernelOfNetwork;
+    }
+    /*
      About methods :
     
         1. "createAdjMatrix" creates adjacency matrix of input gene network using nodetable. The possible
@@ -78,9 +98,9 @@ public class Kernel {
     
     */
     
-    public static double[][] createAdjMatrix(CyNetwork currentnetwork, List<CyNode> nodeList, CyTable edgeTable, int totalnodecount) {
+    public double[][] createAdjMatrix() {
         //make an adjacencymatrix for the current network
-        double[][] adjacencyMatrixOfNetwork = new double[totalnodecount][totalnodecount];
+        adjacencyMatrixOfNetwork = new double[totalnodecount][totalnodecount];
         String natureOfInteraction;
         CyRow row;
         int k = 0;
@@ -122,9 +142,9 @@ public class Kernel {
     
     
     
-    public static double[][] createDegMatrix(CyNetwork currentnetwork, List<CyNode> nodeList, int totalnodecount) {
+    public double[][] createDegMatrix() {
 
-        double[][] degreeMatrixOfNetwork = new double[totalnodecount][totalnodecount];
+        degreeMatrixOfNetwork = new double[totalnodecount][totalnodecount];
 
         int k = 0;
         for (CyNode root : nodeList) {
@@ -138,9 +158,8 @@ public class Kernel {
     }
 
     
-    public static double[][] createLapMatrix(double[][] adjacencyMatrixOfNetwork, double[][] degreeMatrixOfNetwork, int totalnodecount) {
+    public double[][] createLapMatrix() {
 
-        double[][] laplacianMatrixOfNetwork;
         Matrix D = new Matrix(degreeMatrixOfNetwork);
         Matrix A = new Matrix(adjacencyMatrixOfNetwork);
         Matrix L = D.minus(A);
@@ -150,50 +169,41 @@ public class Kernel {
     }
 
     
-    public static double[][] createRequiredExponential(double[][] laplacianMatrixOfNetwork){
+    public double[][] createRequiredExponential(){
         
         double[][] minusOftL;
-        double[][] diffusionKernel;
         DoubleMatrix diffusionKernelMatrix;
         
+        adjacencyMatrixOfNetwork = createAdjMatrix();
+        degreeMatrixOfNetwork = createDegMatrix();
+        laplacianMatrixOfNetwork = createLapMatrix();
+        /*
+          Get adjacency matrix A , Degree matrix D
+          Laplacian matrix L = D-A
+          Required exponentiation  e^(-t*L)   where t is time of diffusion
+        */
         Matrix C = new Matrix(laplacianMatrixOfNetwork);
         C = C.timesEquals(-t);  //  (-t)*L
         minusOftL = C.getArrayCopy();
         
         diffusionKernelMatrix = new DoubleMatrix(minusOftL);
         diffusionKernelMatrix = MatrixFunctions.expm(diffusionKernelMatrix); // exponentiation 
-        diffusionKernel = diffusionKernelMatrix.toArray2();
+        diffusionKernelOfNetwork = diffusionKernelMatrix.toArray2();
         
-        return diffusionKernel;
+        return diffusionKernelOfNetwork;
     
     }
     
-    
-    
-    public static HeatVector diffuse(HeatVector inputVector, double[][] diffusionKernel){
+    public DiffusedHeatVector diffuse(HeatVector inputVector){
         Matrix diffusedVectorMatrix; 
-        HeatVector diffusedOutputRowVector;
+        DiffusedHeatVector diffusedOutputRowVector;
                  
-        Matrix dKernelMatrix = new Matrix(diffusionKernel);
-        diffusedVectorMatrix = inputVector.heatVectorOfScores.times(dKernelMatrix);
-        diffusedOutputRowVector= new HeatVector(diffusedVectorMatrix);
+        Matrix dKernelMatrix = new Matrix(diffusionKernelOfNetwork);
+        diffusedVectorMatrix = inputVector.getheatVectorOfScores().times(dKernelMatrix);
+        diffusedOutputRowVector= new DiffusedHeatVector(diffusedVectorMatrix);
         return diffusedOutputRowVector;
     }
-    
-    public static Map getnodeDiffusedScoreMap(HeatVector diffusedOutputRowVector, List<CyNode> nodeList){
-        
-        Map nodeDiffusedScoreMap; 
-        nodeDiffusedScoreMap = new LinkedHashMap<CyNode,Double>();
-        int count=0;
-        for(CyNode root : nodeList){
-            nodeDiffusedScoreMap.put(root, diffusedOutputRowVector.heatVectorOfScores.get(0,count));
-            count++;
-        }
-   
-        return nodeDiffusedScoreMap;
-    }
-    
-   
+       
 }
 
     

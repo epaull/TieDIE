@@ -33,7 +33,14 @@ public class CyActivator extends AbstractCyActivator {
     public static CyNetworkManager networkManager;
     public static CyNetworkViewFactory networkViewFactory;
     public static CyNetworkViewManager networkViewManager;
-
+    
+    public CyActivator() {
+        super();
+    }
+    /* Each bundle app. in "Cytoscape 3.0" is an OSGi. bundle Reference : http://wiki.cytoscape.org/Cytoscape_3/AppDeveloper
+       TieDIE is a bundle app.
+       Start our bundle here 
+    */
     @Override
     public void start(BundleContext context) throws Exception {
         String version = new String(" 1.0");

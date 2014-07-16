@@ -6,10 +6,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.cytoscape.model.CyNetwork;
+import org.cytoscape.model.CyNetworkFactory;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
 import org.cytoscape.model.CyTable;
 import org.cytoscape.view.model.CyNetworkView;
+
+import org.cytoscape.tiedie.internal.CyActivator;
 
 
 /**
@@ -25,65 +28,82 @@ public class TieDieLogicThread extends Thread {
     /*
         About instance variables :
     
-        current network is current selected network by user.
-        currentnetworkview is current network view of corresponding network
     */
+    double sizeFactor, linker_cutoff;
+    
     public CyNetwork currentnetwork;
     public CyNetworkView currentnetworkview;
-     
+    public int totalnodecount;
+    List<CyNode> nodeList;
+    CyTable nodeTable, edgeTable;
+    
+    HeatVector upstreamheatVector, downstreamheatVector;
+    DiffusedHeatVector upstreamheatVectorDiffused, downstreamheatVectorDiffused;
+    Map upnodeScoreMapDiffused, downnodeScoreMapDiffused;
+    Map linkers_nodeScoreMap, filtered_linkersNodeScoreMap;
+    
     public TieDieLogicThread(CyNetwork currentnetwork, CyNetworkView currentnetworkview) {
         this.currentnetwork = currentnetwork;
         this.currentnetworkview = currentnetworkview;
+        this.nodeList = currentnetwork.getNodeList(); 
+        this.totalnodecount = nodeList.size();
+        this.edgeTable = currentnetwork.getDefaultEdgeTable();
+        this.nodeTable = currentnetwork.getDefaultNodeTable();
+        
+        upstreamheatVector = new HeatVector(totalnodecount);
+        downstreamheatVector = new HeatVector(totalnodecount);
+        upstreamheatVectorDiffused = new DiffusedHeatVector(totalnodecount);
+        downstreamheatVectorDiffused = new DiffusedHeatVector(totalnodecount);
     }
 
     @Override
     public void run(){
-        
-        double sizeFactor, linker_cutoff;
-        List<CyNode> nodeList = currentnetwork.getNodeList(); // get list of all nodes using currentnetwork
-        int totalnodecount = nodeList.size();
-        CyTable edgeTable = currentnetwork.getDefaultEdgeTable(); // get corresponding nodetable
-        CyTable nodeTable = currentnetwork.getDefaultNodeTable(); // get corresponding edgetable
-        
-        /*
-        Get adjacency matrix A , Degree matrix D
-        Laplacian matrix L = D-A
-        Required exponentiation  e^(-t*L)   where t is time of diffusion
-        */
-        double[][] adjacencyMatrixOfNetwork = Kernel.createAdjMatrix(currentnetwork, nodeList, edgeTable, totalnodecount);
-        double[][] degreeMatrixOfNetwork = Kernel.createDegMatrix(currentnetwork, nodeList, totalnodecount);
-        double[][] laplacianMatrixOfNetwork = Kernel.createLapMatrix(adjacencyMatrixOfNetwork, degreeMatrixOfNetwork, totalnodecount);
-        double[][] diffusionKernel = Kernel.createRequiredExponential(laplacianMatrixOfNetwork);
+      
+        Kernel heatDiffusionKernel = new Kernel(currentnetwork);
+        double[][] diffusionKernel = heatDiffusionKernel.createRequiredExponential();
         
         /*
         Create upstreamheatVector, downstreamheatVector for 2-way diffusion
         "Extract them using extractHeatVector"
         */
-        HeatVector upstreamheatVector = new HeatVector(totalnodecount);
         upstreamheatVector = upstreamheatVector.extractHeatVector("upstreamheat",nodeList,nodeTable);
-        HeatVector downstreamheatVector = new HeatVector(totalnodecount);
         downstreamheatVector = downstreamheatVector.extractHeatVector("downstreamheat",nodeList,nodeTable);
-        
         // Get the diffused heat vectors which spread all over the network
-        HeatVector upstreamheatVectorDiffused = new HeatVector(totalnodecount);
-        upstreamheatVectorDiffused =  Kernel.diffuse(upstreamheatVector, diffusionKernel);
-        HeatVector downstreamheatVectorDiffused = new HeatVector(totalnodecount);
-        downstreamheatVectorDiffused = Kernel.diffuse(downstreamheatVector, diffusionKernel); 
+        upstreamheatVectorDiffused =  upstreamheatVectorDiffused.extractDiffusedHeatVector(upstreamheatVector, heatDiffusionKernel);
+        downstreamheatVectorDiffused = downstreamheatVectorDiffused.extractDiffusedHeatVector(downstreamheatVector, heatDiffusionKernel);
         
         // Extract the maps with only inital sets and their diffused values
-        Map upnodeScoreMapDiffused = getDiffusedMap("upstreamheat",nodeList, nodeTable, upstreamheatVector.nodeHeatSet, upstreamheatVectorDiffused);
-        Map downnodeScoreMapDiffused = getDiffusedMap("downstreamheat",nodeList, nodeTable, downstreamheatVector.nodeHeatSet, downstreamheatVectorDiffused);
+        upnodeScoreMapDiffused = getDiffusedMap("upstreamheat", upstreamheatVectorDiffused);
+        downnodeScoreMapDiffused = getDiffusedMap("downstreamheat", downstreamheatVectorDiffused);
         
-        sizeFactor = 1;
-        linker_cutoff = TieDieUtil.findLinkerCutoff(nodeList,upstreamheatVector.getnodeHeatSet(), downstreamheatVector.getnodeHeatSet(), upnodeScoreMapDiffused, downnodeScoreMapDiffused, sizeFactor);
-        // nodeList is the extra parameter to existing tiedie  https://github.com/epaull/TieDIE/blob/master/lib/tiedie_util.py#L336
+        extractSubnetwork();
         
         
       
         
     } 
     
-    public Map getDiffusedMap(String columnName, List<CyNode> nodeList, CyTable nodeTable, Set<CyNode> nodeHeatSet , HeatVector diffusedVector ){
+    public void extractSubnetwork(){
+        sizeFactor = 1;
+        linker_cutoff = TieDieUtil.findLinkerCutoff(nodeList,upstreamheatVector.getnodeHeatSet(), downstreamheatVector.getnodeHeatSet(), upnodeScoreMapDiffused, downnodeScoreMapDiffused, sizeFactor);
+        // nodeList is the extra parameter to existing tiedie  https://github.com/epaull/TieDIE/blob/master/lib/tiedie_util.py#L336
+        
+        linkers_nodeScoreMap = TieDieUtil.findLinkersMap(nodeList, upstreamheatVector.getnodeHeatSet(), downstreamheatVector.getnodeHeatSet(), upnodeScoreMapDiffused, downnodeScoreMapDiffused);
+        // calling "z" function here according to literature
+        filtered_linkersNodeScoreMap = TieDieUtil.findFilteredLinkersMap(linkers_nodeScoreMap, linker_cutoff);
+        createExtractedSubnetwork();
+    }
+    
+    public void createExtractedSubnetwork(){
+        CyNetwork TieDIEsubNetwork = null;
+        CyNetworkFactory networkFactory = CyActivator.networkFactory;
+        networkFactory.createNetwork(); //Network factory creates new network in control panel
+        TieDIEsubNetwork.getRow(TieDIEsubNetwork).set(CyNetwork.NAME, "TieDIE subnetwork");
+    
+    }
+    
+    
+    public Map getDiffusedMap(String columnName,DiffusedHeatVector diffusedVector ){
         Map sameSetScoreDiffused = new HashMap<CyNode, Double>();
         int count = 0;
         double diffusedScore;
@@ -91,7 +111,7 @@ public class TieDieLogicThread extends Thread {
         for (CyNode root : nodeList) { // nodeList is always accessed in a same order
             CyRow row = nodeTable.getRow(root.getSUID());
             if (row.get(columnName, Double.class) != null) {
-                diffusedScore = diffusedVector.heatVectorOfScores.get(0, count);
+                diffusedScore = diffusedVector.getVectorOfScores().get(0, count);
                 sameSetScoreDiffused.put(root, diffusedScore);
             }
 

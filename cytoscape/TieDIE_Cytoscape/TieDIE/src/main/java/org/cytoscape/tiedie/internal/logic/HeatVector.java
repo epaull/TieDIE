@@ -2,9 +2,6 @@ package org.cytoscape.tiedie.internal.logic;
 
 import Jama.Matrix;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.List;
@@ -24,15 +21,11 @@ public class HeatVector {
     
         1. Each HeatVector has a vector of scores which is a rowmatrix "Matrix heatVectorOfScores"
         2. "nodeHeatSet" is the corresponding set of nodes for the respective heat vector
-        3. "nodeScoreMap" is the corresponding map of <CyNode, heatvalue>
-    
     */    
     
-    Matrix heatVectorOfScores;
-    int numOfColumns;
-    public Set<CyNode> nodeHeatSet;
-    public Map nodeScoreMap;
-
+    private Matrix heatVectorOfScores;
+    private int numOfColumns;
+    private Set<CyNode> nodeHeatSet;
     
     // HeatValue and Score are the same 
     
@@ -51,12 +44,10 @@ public class HeatVector {
         return nodeHeatSet;
     }
     
-    public Map getnodeScoreMap(){
-        return nodeScoreMap;
+    public Matrix getheatVectorOfScores() {
+        return heatVectorOfScores;
     }
-    
-   
-    
+      
     // Getter methods end here
    
     /*
@@ -65,13 +56,12 @@ public class HeatVector {
         1. "extractHeatVector" extracts the required heat vector from "nodeTable" by taking "columnName" as input
         2. For a two way diffusion, column names are supposed to be "upstreamheat" , "downstreamheat"  from the 
            input files
-        3. "extractHeatVector" also sets "nodeHeatSet" and "nodeScoreMap"
+        3. "extractHeatVector" also sets "nodeHeatSet" 
     */
     
     public HeatVector extractHeatVector(String columnName, List<CyNode> nodeList, CyTable nodeTable) {
         int counter = 0;
         double heatscore;
-        nodeScoreMap = new LinkedHashMap<CyNode, Double>();
         nodeHeatSet = new LinkedHashSet<CyNode>();
         
         for (CyNode root : nodeList) { // nodeList is always accessed in a same order
@@ -80,7 +70,6 @@ public class HeatVector {
                 heatscore = row.get(columnName, Double.class);
                 heatVectorOfScores.set(0, counter, heatscore);
                 nodeHeatSet.add(root);  // put all the nodes corresponding to that column in nodeHeatSet
-                nodeScoreMap.put(root, heatscore); // put all the <node, heatscore> in nodeScoreMap
             }
 
             counter++;
@@ -88,10 +77,5 @@ public class HeatVector {
 
         return this;
     }
-
-   
-
-    
-     
     
 }

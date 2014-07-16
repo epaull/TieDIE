@@ -3,6 +3,7 @@ package org.cytoscape.tiedie.internal.logic;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,7 +19,6 @@ import org.cytoscape.model.CyNode;
  */
 
 // Check that variables are not declared inside loop & check all maps,sets declarations
-// Check that reverse sorted
 // Check whenever map is returned
 public class TieDieUtil {
     
@@ -84,9 +84,12 @@ public class TieDieUtil {
                h = entry.getValue();
                linker_cutoff = h-EPSILON;
                size_frac = scoreLinkers(upScoreMapDiffused,upScoreMapDiffusedSorted,downScoreMapDiffused,downScoreMapDiffusedSorted,upstreamnodeSet,downstreamnodeSet, linker_cutoff , sizeFactor);
+               if(size_frac > 1){
+                   return linker_cutoff;
+               }
            }
-           
            return linker_cutoff;
+           
        }
        
        
