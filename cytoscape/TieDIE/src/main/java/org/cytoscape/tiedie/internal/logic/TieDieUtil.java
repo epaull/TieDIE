@@ -93,7 +93,7 @@ public class TieDieUtil {
        }
        
        
-       public static double scoreLinkers(Map upScoreMapDiffused,Map upScoreMapDiffusedSorted,Map downScoreMapDiffused,Map downScoreMapDiffusedSorted,Set<CyNode >upstreamnodeSet,Set<CyNode> downstreamnodeSet,double linker_cutoff, double  sizeFactor){
+       public static double scoreLinkers(Map upScoreMapDiffused,Map upScoreMapDiffusedSorted,Map downScoreMapDiffused,Map downScoreMapDiffusedSorted,Set<CyNode> upstreamnodeSet,Set<CyNode> downstreamnodeSet,double linker_cutoff, double  sizeFactor){
            Set<CyNode> f1 = null, f2 = null, union = null, intersection = null, connecting = null, initialUnion = null;
            double size_frac;
            
@@ -133,10 +133,11 @@ public class TieDieUtil {
                connecting.add(root);
            }
            
-           // Connecting nodes are present in intersection and not in f1 and not in f2
-           for(CyNode root: intersection){
-               if(f1.contains(root)||f2.contains(root)){
-                   connecting.remove(root);
+           // Connecting nodes are present "only" in intersection and not in source and not it in target
+           for(CyNode unwantedNode : intersection){    
+               if(upstreamnodeSet.contains(unwantedNode) || downstreamnodeSet.contains(unwantedNode))
+               {
+                   connecting.remove(unwantedNode);
                }
            }
            

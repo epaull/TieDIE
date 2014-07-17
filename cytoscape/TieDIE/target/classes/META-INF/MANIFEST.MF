@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1405519613582
+Bnd-LastModified: 1405536574761
 Build-Jdk: 1.7.0_45
 Built-By: Srikanth
 Bundle-Activator: org.cytoscape.tiedie.internal.CyActivator
