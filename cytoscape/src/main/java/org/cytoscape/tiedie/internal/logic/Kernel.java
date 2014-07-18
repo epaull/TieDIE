@@ -3,7 +3,7 @@ package org.cytoscape.tiedie.internal.logic;
 
 import Jama.Matrix;
 
-import org.jblas.DoubleMatrix;
+import org.jblas.DoubleMatrix; // jblas library has been used for matrix exponentiation
 import org.jblas.MatrixFunctions;
 
 import java.util.List;
@@ -18,7 +18,7 @@ import org.cytoscape.model.CyTable;
 /**
  * @author SrikanthB
     -> "HeatKernel as a substitution for pageRank"
-    -> “diffusion” kernel describing the ?ow of information in the master network
+    -> “diffusion” kernel describing the flow of information in the master network
     -> Heat diffusion is actually the average of all random walks.
     -> PageRank is also a random walk model, but it continues until an equilibrium is reached whereas 
        the heat diffusion stops at that timepoint t, which we set to 0.1 (based on empirical evidence)
@@ -59,10 +59,12 @@ public class Kernel {
     }
     
     public double[][] getadjacencyMatrixOfNetwork(){
+        this.createAdjMatrix();
         return adjacencyMatrixOfNetwork;
     }
     
-    public double[][] diffusionKernelOfNetwork(){
+    public double[][] getdiffusionKernelOfNetwork(){
+        this.createRequiredExponential();
         return diffusionKernelOfNetwork;
     }
     /*
@@ -92,12 +94,10 @@ public class Kernel {
             The advantage of tiedie is to take that vector, and make it into a diffused vector that has continuous
             values over all genes. it's 'fixing' that deficiency in the input data.
     
-        6. Now that we have diffused scores for each node , "getnodeDiffusedScoreMap" returns 
-           map <CyNode, diffusedHeatScore> 
-    
-    
     */
     
+    
+    // Make sure adjacency matrix returns a symmetric one
     public double[][] createAdjMatrix() {
         //make an adjacencymatrix for the current network
         adjacencyMatrixOfNetwork = new double[totalnodecount][totalnodecount];
@@ -182,9 +182,9 @@ public class Kernel {
           Laplacian matrix L = D-A
           Required exponentiation  e^(-t*L)   where t is time of diffusion
         */
-        Matrix C = new Matrix(laplacianMatrixOfNetwork);
-        C = C.timesEquals(-t);  //  (-t)*L
-        minusOftL = C.getArrayCopy();
+        Matrix L = new Matrix(laplacianMatrixOfNetwork);
+        L = L.timesEquals(-t);  //  (-t)*L
+        minusOftL = L.getArrayCopy();
         
         diffusionKernelMatrix = new DoubleMatrix(minusOftL);
         diffusionKernelMatrix = MatrixFunctions.expm(diffusionKernelMatrix); // exponentiation 
@@ -197,7 +197,8 @@ public class Kernel {
     public DiffusedHeatVector diffuse(HeatVector inputVector){
         Matrix diffusedVectorMatrix; 
         DiffusedHeatVector diffusedOutputRowVector;
-                 
+        
+        diffusionKernelOfNetwork = this.createRequiredExponential();
         Matrix dKernelMatrix = new Matrix(diffusionKernelOfNetwork);
         diffusedVectorMatrix = inputVector.getheatVectorOfScores().times(dKernelMatrix);
         diffusedOutputRowVector= new DiffusedHeatVector(diffusedVectorMatrix);

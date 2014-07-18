@@ -12,7 +12,9 @@ public class DiffusedHeatVector {
     
     public DiffusedHeatVector(int numOfColumns) {
         this.numOfColumns = numOfColumns;
-        this.heatVectorOfScores = new Matrix(1, numOfColumns);
+        this.heatVectorOfScores = new Matrix(1, numOfColumns); 
+        // Matrix(int m, int n) 
+        //  Construct an m-by-n matrix of zeros.
     }
 
     public DiffusedHeatVector(Matrix rowVector) {

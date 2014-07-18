@@ -20,7 +20,7 @@ TieDIE_Cytoscape
 
 
 ## More about TieDIE 
-1. [Discovering causal pathways linking genomic events to transcriptional states using Tied Diffusion Through Interacting Events "TieDIE"](http://bioinformatics.oxfordjournals.org/content/29/21/2757.short)
+1. ["TieDIE" journal](http://bioinformatics.oxfordjournals.org/content/29/21/2757.short)
 
 2. [Existing TieDIE software](https://sysbiowiki.soe.ucsc.edu/tiedie)
 

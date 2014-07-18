@@ -60,7 +60,6 @@ public class TieDieLogicThread extends Thread {
     public void run(){
       
         Kernel heatDiffusionKernel = new Kernel(currentnetwork);
-        double[][] diffusionKernel = heatDiffusionKernel.createRequiredExponential();
         
         /*
         Create upstreamheatVector, downstreamheatVector for 2-way diffusion
@@ -118,6 +117,7 @@ public class TieDieLogicThread extends Thread {
             count++;
         }
         return sameSetScoreDiffused;
+        // This map contains only <nodes, heatscore> corresponding to that columnName only
     } 
     
 }

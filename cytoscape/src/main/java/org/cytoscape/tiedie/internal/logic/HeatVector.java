@@ -20,18 +20,21 @@ public class HeatVector {
         About instance variables :
     
         1. Each HeatVector has a vector of scores which is a rowmatrix "Matrix heatVectorOfScores"
-        2. "nodeHeatSet" is the corresponding set of nodes for the respective heat vector
+        2. "nodeHeatSet" is the corresponding set of nodes for the respective heat vector.
+            
     */    
     
     private Matrix heatVectorOfScores;
     private int numOfColumns;
-    private Set<CyNode> nodeHeatSet;
+    private Set<CyNode> nodeHeatSet; 
     
-    // HeatValue and Score are the same 
-    
+    //HeatValue and Score are the same
+   
     public HeatVector(int numOfColumns) {
         this.numOfColumns = numOfColumns;
         this.heatVectorOfScores = new Matrix(1, numOfColumns);
+        // Matrix(int m, int n) 
+        //  Construct an m-by-n matrix of zeros.
     }
 
     public HeatVector(Matrix rowVector) {
@@ -42,6 +45,7 @@ public class HeatVector {
     // Getter methods start here
     public Set getnodeHeatSet(){
         return nodeHeatSet;
+        
     }
     
     public Matrix getheatVectorOfScores() {
@@ -62,7 +66,7 @@ public class HeatVector {
     public HeatVector extractHeatVector(String columnName, List<CyNode> nodeList, CyTable nodeTable) {
         int counter = 0;
         double heatscore;
-        nodeHeatSet = new LinkedHashSet<CyNode>();
+        nodeHeatSet = new LinkedHashSet<CyNode>(); 
         
         for (CyNode root : nodeList) { // nodeList is always accessed in a same order
             CyRow row = nodeTable.getRow(root.getSUID());
