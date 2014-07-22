@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: org.cytoscape.tiedie.internal.logic.KernelTest
+-------------------------------------------------------------------------------
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.471 sec - in org.cytoscape.tiedie.internal.logic.KernelTest

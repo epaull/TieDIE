@@ -71,7 +71,7 @@ public class TieDieLogicThread extends Thread {
         upstreamheatVectorDiffused =  upstreamheatVectorDiffused.extractDiffusedHeatVector(upstreamheatVector, heatDiffusionKernel);
         downstreamheatVectorDiffused = downstreamheatVectorDiffused.extractDiffusedHeatVector(downstreamheatVector, heatDiffusionKernel);
         
-        // Extract the maps with only inital sets and their diffused values
+        // Extracting the maps with only inital sets and their diffused values below
         upnodeScoreMapDiffused = getDiffusedMap("upstreamheat", upstreamheatVectorDiffused);
         downnodeScoreMapDiffused = getDiffusedMap("downstreamheat", downstreamheatVectorDiffused);
         

@@ -43,7 +43,7 @@ public class Kernel {
     
     private double[][] adjacencyMatrixOfNetwork;
     private double[][] degreeMatrixOfNetwork;
-    private double[][] laplacianMatrixOfNetwork;
+    private Matrix L; // Laplacian matrix of network
     private double[][] diffusionKernelOfNetwork;
     
     public Kernel(CyNetwork network){
@@ -59,14 +59,13 @@ public class Kernel {
     }
     
     public double[][] getadjacencyMatrixOfNetwork(){
-        this.createAdjMatrix();
-        return adjacencyMatrixOfNetwork;
+        return createAdjMatrix();
     }
     
     public double[][] getdiffusionKernelOfNetwork(){
-        this.createRequiredExponential();
-        return diffusionKernelOfNetwork;
+        return createRequiredExponential();
     }
+
     /*
      About methods :
     
@@ -105,9 +104,9 @@ public class Kernel {
         CyRow row;
         int k = 0;
         for (CyNode root : nodeList) {
-            List<CyNode> neighbors = currentnetwork.getNeighborList(root, CyEdge.Type.OUTGOING);
+            List<CyNode> neighbors = currentnetwork.getNeighborList(root, CyEdge.Type.ANY);
             for (CyNode neighbor : neighbors) {
-                List<CyEdge> edges = currentnetwork.getConnectingEdgeList(root, neighbor, CyEdge.Type.DIRECTED);
+                List<CyEdge> edges = currentnetwork.getConnectingEdgeList(root, neighbor, CyEdge.Type.ANY);
                 if (edges.size() > 0) {
                     row = edgeTable.getRow(edges.get(0).getSUID());
                     try {
@@ -158,14 +157,13 @@ public class Kernel {
     }
 
     
-    public double[][] createLapMatrix() {
+    public Matrix createLapMatrix() {
 
         Matrix D = new Matrix(degreeMatrixOfNetwork);
         Matrix A = new Matrix(adjacencyMatrixOfNetwork);
-        Matrix L = D.minus(A);
-        laplacianMatrixOfNetwork = L.getArrayCopy();
+        L = D.minus(A);
         
-        return laplacianMatrixOfNetwork;
+        return L;
     }
 
     
@@ -176,33 +174,30 @@ public class Kernel {
         
         adjacencyMatrixOfNetwork = createAdjMatrix();
         degreeMatrixOfNetwork = createDegMatrix();
-        laplacianMatrixOfNetwork = createLapMatrix();
+        L = createLapMatrix();
         /*
           Get adjacency matrix A , Degree matrix D
           Laplacian matrix L = D-A
           Required exponentiation  e^(-t*L)   where t is time of diffusion
         */
-        Matrix L = new Matrix(laplacianMatrixOfNetwork);
-        L = L.timesEquals(-t);  //  (-t)*L
-        minusOftL = L.getArrayCopy();
+        
+        minusOftL = (L.timesEquals(-t)).getArrayCopy(); // (-t)*L
         
         diffusionKernelMatrix = new DoubleMatrix(minusOftL);
         diffusionKernelMatrix = MatrixFunctions.expm(diffusionKernelMatrix); // exponentiation 
-        diffusionKernelOfNetwork = diffusionKernelMatrix.toArray2();
         
-        return diffusionKernelOfNetwork;
+        return diffusionKernelMatrix.toArray2();
     
     }
     
     public DiffusedHeatVector diffuse(HeatVector inputVector){
         Matrix diffusedVectorMatrix; 
-        DiffusedHeatVector diffusedOutputRowVector;
         
-        diffusionKernelOfNetwork = this.createRequiredExponential();
+        diffusionKernelOfNetwork = createRequiredExponential();
         Matrix dKernelMatrix = new Matrix(diffusionKernelOfNetwork);
         diffusedVectorMatrix = inputVector.getheatVectorOfScores().times(dKernelMatrix);
-        diffusedOutputRowVector= new DiffusedHeatVector(diffusedVectorMatrix);
-        return diffusedOutputRowVector;
+        
+        return new DiffusedHeatVector(diffusedVectorMatrix);
     }
        
 }

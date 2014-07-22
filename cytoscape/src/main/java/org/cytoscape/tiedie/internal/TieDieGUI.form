@@ -38,18 +38,23 @@
       <Layout>
         <DimensionLayout dim="0">
           <Group type="103" groupAlignment="0" attributes="0">
-              <Group type="102" attributes="0">
+              <Group type="102" alignment="0" attributes="0">
+                  <EmptySpace min="-2" pref="86" max="-2" attributes="0"/>
+                  <Component id="headingLabel" min="-2" max="-2" attributes="0"/>
+                  <EmptySpace max="32767" attributes="0"/>
+              </Group>
+              <Group type="102" alignment="0" attributes="0">
                   <EmptySpace min="-2" pref="35" max="-2" attributes="0"/>
                   <Group type="103" groupAlignment="0" attributes="0">
                       <Group type="102" alignment="0" attributes="0">
                           <Group type="103" groupAlignment="0" attributes="0">
                               <Component id="statusLabel" alignment="1" max="32767" attributes="0"/>
-                              <Group type="102" alignment="0" attributes="0">
-                                  <Group type="103" groupAlignment="1" max="-2" attributes="0">
-                                      <Component id="startButton" pref="207" max="32767" attributes="0"/>
-                                      <Component id="otherPanel" max="32767" attributes="0"/>
+                              <Group type="102" attributes="0">
+                                  <Group type="103" groupAlignment="0" attributes="0">
+                                      <Component id="startButton" min="-2" max="-2" attributes="0"/>
+                                      <Component id="otherPanel1" alignment="0" min="-2" max="-2" attributes="0"/>
                                   </Group>
-                                  <EmptySpace pref="44" max="32767" attributes="0"/>
+                                  <EmptySpace min="0" pref="30" max="32767" attributes="0"/>
                               </Group>
                           </Group>
                           <EmptySpace max="-2" attributes="0"/>
@@ -58,14 +63,13 @@
                           <Component id="helpButton" min="-2" pref="63" max="-2" attributes="0"/>
                           <EmptySpace max="32767" attributes="0"/>
                           <Component id="exitButton" min="-2" max="-2" attributes="0"/>
-                          <EmptySpace min="-2" pref="44" max="-2" attributes="0"/>
+                          <EmptySpace min="-2" pref="43" max="-2" attributes="0"/>
+                      </Group>
+                      <Group type="102" alignment="0" attributes="0">
+                          <Component id="otherPanel2" min="-2" max="-2" attributes="0"/>
+                          <EmptySpace max="32767" attributes="0"/>
                       </Group>
                   </Group>
-              </Group>
-              <Group type="102" alignment="0" attributes="0">
-                  <EmptySpace min="-2" pref="86" max="-2" attributes="0"/>
-                  <Component id="headingLabel" min="-2" max="-2" attributes="0"/>
-                  <EmptySpace max="32767" attributes="0"/>
               </Group>
           </Group>
         </DimensionLayout>
@@ -73,19 +77,21 @@
           <Group type="103" groupAlignment="0" attributes="0">
               <Group type="102" alignment="1" attributes="0">
                   <EmptySpace max="-2" attributes="0"/>
-                  <Component id="headingLabel" min="-2" pref="31" max="-2" attributes="0"/>
-                  <EmptySpace max="32767" attributes="0"/>
-                  <Component id="otherPanel" min="-2" max="-2" attributes="0"/>
+                  <Component id="headingLabel" min="-2" pref="21" max="-2" attributes="0"/>
+                  <EmptySpace max="-2" attributes="0"/>
+                  <Component id="otherPanel1" min="-2" max="-2" attributes="0"/>
                   <EmptySpace type="separate" max="-2" attributes="0"/>
-                  <Component id="startButton" min="-2" pref="40" max="-2" attributes="0"/>
-                  <EmptySpace min="-2" pref="31" max="-2" attributes="0"/>
-                  <Component id="statusLabel" min="-2" max="-2" attributes="0"/>
-                  <EmptySpace type="separate" max="-2" attributes="0"/>
+                  <Component id="otherPanel2" min="-2" max="-2" attributes="0"/>
+                  <EmptySpace type="unrelated" max="-2" attributes="0"/>
+                  <Component id="startButton" min="-2" pref="46" max="-2" attributes="0"/>
+                  <EmptySpace type="unrelated" max="-2" attributes="0"/>
+                  <Component id="statusLabel" min="-2" pref="16" max="-2" attributes="0"/>
+                  <EmptySpace max="-2" attributes="0"/>
                   <Group type="103" groupAlignment="3" attributes="0">
-                      <Component id="helpButton" alignment="3" min="-2" max="-2" attributes="0"/>
-                      <Component id="exitButton" alignment="3" min="-2" max="-2" attributes="0"/>
+                      <Component id="helpButton" alignment="3" min="-2" pref="30" max="-2" attributes="0"/>
+                      <Component id="exitButton" alignment="3" min="-2" pref="28" max="-2" attributes="0"/>
                   </Group>
-                  <EmptySpace min="-2" pref="59" max="-2" attributes="0"/>
+                  <EmptySpace min="-2" pref="43" max="-2" attributes="0"/>
               </Group>
           </Group>
         </DimensionLayout>
@@ -115,20 +121,20 @@
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="exitButtonActionPerformed"/>
           </Events>
         </Component>
-        <Container class="javax.swing.JPanel" name="otherPanel">
+        <Container class="javax.swing.JPanel" name="otherPanel1">
           <AuxValues>
-            <AuxValue name="JavaCodeGenerator_allCodePost" type="java.lang.String" value="// Customized code from here&#xa;/*&#xa;CyTable nodeTable = currentnetwork.getDefaultNodeTable();&#xa;Collection&lt;CyColumn&gt; columnCollection = nodeTable.getColumns();&#xa;&#xa;String presentColumnName;&#xa;Border border = BorderFactory.createTitledBorder(&quot;Select columns for diffusion&quot;);&#xa;otherPanel.setBorder(border);&#xa;&#xa;List&lt;JCheckBox&gt; checkboxes = new ArrayList&lt;JCheckBox&gt;();&#xa;for(CyColumn presentColumn : columnCollection){&#xa;    presentColumnName = presentColumn.getName();&#xa;    JCheckBox check = new JCheckBox(presentColumnName);&#xa;    checkboxes.add(check);&#xa;    otherPanel.add(check);&#xa;}&#xa;*/&#xa;&#xa;Border border = BorderFactory.createTitledBorder(&quot;Select columns for diffusion&quot;);&#xa;otherPanel.setBorder(border);&#xa;JCheckBox upstreamBox = new JCheckBox(&quot;upstreamheat&quot;);&#xa;JCheckBox downstreamBox = new JCheckBox(&quot;downstreamheat&quot;);&#xa;&#xa;upstreamBox.setSelected(true);&#xa;downstreamBox.setSelected(true);&#xa;otherPanel.add(upstreamBox);&#xa;otherPanel.add(downstreamBox);&#xa;// Customized code ends here"/>
+            <AuxValue name="JavaCodeGenerator_allCodePost" type="java.lang.String" value="// Customized code from here&#xa;/*&#xa;CyTable nodeTable = currentnetwork.getDefaultNodeTable();&#xa;Collection&lt;CyColumn&gt; columnCollection = nodeTable.getColumns();&#xa;&#xa;String presentColumnName;&#xa;Border border = BorderFactory.createTitledBorder(&quot;Select columns for diffusion&quot;);&#xa;otherPanel1.setBorder(border);&#xa;&#xa;List&lt;JCheckBox&gt; checkboxes = new ArrayList&lt;JCheckBox&gt;();&#xa;for(CyColumn presentColumn : columnCollection){&#xa;    presentColumnName = presentColumn.getName();&#xa;    JCheckBox check = new JCheckBox(presentColumnName);&#xa;    checkboxes.add(check);&#xa;    otherPanel1.add(check);&#xa;}&#xa;*/&#xa;&#xa;Border border1 = BorderFactory.createTitledBorder(&quot;Select columns for diffusion&quot;);&#xa;otherPanel1.setBorder(border1);&#xa;JCheckBox upstreamBox = new JCheckBox(&quot;upstreamheat&quot;,true);&#xa;JCheckBox downstreamBox = new JCheckBox(&quot;downstreamheat&quot;,true);&#xa;&#xa;otherPanel1.add(upstreamBox);&#xa;otherPanel1.add(downstreamBox);&#xa;// Customized code ends here"/>
           </AuxValues>
 
           <Layout>
             <DimensionLayout dim="0">
               <Group type="103" groupAlignment="0" attributes="0">
-                  <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                  <EmptySpace min="0" pref="192" max="32767" attributes="0"/>
               </Group>
             </DimensionLayout>
             <DimensionLayout dim="1">
               <Group type="103" groupAlignment="0" attributes="0">
-                  <EmptySpace min="0" pref="182" max="32767" attributes="0"/>
+                  <EmptySpace min="0" pref="147" max="32767" attributes="0"/>
               </Group>
             </DimensionLayout>
           </Layout>
@@ -152,6 +158,24 @@
             <Property name="text" type="java.lang.String" value="TieDIE status"/>
           </Properties>
         </Component>
+        <Container class="javax.swing.JPanel" name="otherPanel2">
+          <AuxValues>
+            <AuxValue name="JavaCodeGenerator_AddingCodePost" type="java.lang.String" value="Border border2 = BorderFactory.createTitledBorder(&quot;Select way of diffusion&quot;);&#xa;otherPanel2.setBorder(border2);&#xa;JRadioButton kernelButton = new JRadioButton(&quot;HeatKernel&quot;,true);&#xa;JRadioButton pagerankButton = new JRadioButton(&quot;PageRank&quot;, false);&#xa;&#xa;otherPanel2.add(kernelButton);&#xa;otherPanel2.add(pagerankButton);"/>
+          </AuxValues>
+
+          <Layout>
+            <DimensionLayout dim="0">
+              <Group type="103" groupAlignment="0" attributes="0">
+                  <EmptySpace min="0" pref="195" max="32767" attributes="0"/>
+              </Group>
+            </DimensionLayout>
+            <DimensionLayout dim="1">
+              <Group type="103" groupAlignment="0" attributes="0">
+                  <EmptySpace min="0" pref="67" max="32767" attributes="0"/>
+              </Group>
+            </DimensionLayout>
+          </Layout>
+        </Container>
       </SubComponents>
     </Container>
   </SubComponents>

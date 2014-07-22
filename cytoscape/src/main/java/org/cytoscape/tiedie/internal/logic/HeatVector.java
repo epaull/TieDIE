@@ -66,13 +66,13 @@ public class HeatVector {
     public HeatVector extractHeatVector(String columnName, List<CyNode> nodeList, CyTable nodeTable) {
         int counter = 0;
         double heatscore;
-        nodeHeatSet = new LinkedHashSet<CyNode>(); 
+        nodeHeatSet = new LinkedHashSet<CyNode>();  
         
         for (CyNode root : nodeList) { // nodeList is always accessed in a same order
             CyRow row = nodeTable.getRow(root.getSUID());
             if (row.get(columnName, Double.class) != null) {
                 heatscore = row.get(columnName, Double.class);
-                heatVectorOfScores.set(0, counter, heatscore);
+                heatVectorOfScores.set(0, counter, heatscore); // set() method of Jama library
                 nodeHeatSet.add(root);  // put all the nodes corresponding to that column in nodeHeatSet
             }
 

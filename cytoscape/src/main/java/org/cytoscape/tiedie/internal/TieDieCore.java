@@ -27,7 +27,7 @@ public class TieDieCore {
     public CySwingApplication cyDesktopService;
     public CyServiceRegistrar cyServiceRegistrar;
     public CyActivator cyactivator;
-    public TieDieStartMenu tiediestartmenu;
+    public TieDieGUI tiediestartmenu;
 
     public TieDieCore(CyActivator cyactivator) {
         this.cyactivator = cyactivator;
@@ -57,8 +57,8 @@ public class TieDieCore {
         view = null;
     }
 
-    public TieDieStartMenu createTieDieStartMenu() {
-        TieDieStartMenu startmenu = new TieDieStartMenu(cyactivator, this);
+    public TieDieGUI createTieDieStartMenu() {
+        TieDieGUI startmenu = new TieDieGUI(cyactivator, this);
         cyServiceRegistrar.registerService(startmenu, CytoPanelComponent.class, new Properties());
         CytoPanel cytopanelwest = cyDesktopService.getCytoPanel(CytoPanelName.WEST);
         int index = cytopanelwest.indexOfComponent(startmenu);
