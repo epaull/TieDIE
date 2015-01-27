@@ -222,10 +222,10 @@ class ActivityScores:
 
 		return scores	
 
-	def scoreCandidatesBG(self):
-		# FIXME:
-		# Score canididates against a set of scores generated with permuted sample labels
-		# i.e. labels are permuted, SAM is re-run to produce a background set of scores
+	#def scoreCandidatesBG(self):
+	#	# FIXME:
+	#	# Score canididates against a set of scores generated with permuted sample labels
+	#	# i.e. labels are permuted, SAM is re-run to produce a background set of scores
 
 
 	def scoreCandidates(self, threshold=0.05, nperms=1000):

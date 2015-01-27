@@ -139,10 +139,14 @@ def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 		if size_frac > 1:
 			break
 
+	input_genes = set()
+	for input in input_heats:
+		input_genes = input_genes.union(input_heats[input].keys())
 	# set of input heats
 	ugraph = None
-	# USE JUST LINKER GENES
+	# USE LINKER GENES AND INPUT GENES
 	active_nodes = set(linkers)
+	active_nodes = active_nodes.union(input_genes)
 	ugraph = connectedSubnets(network, active_nodes)
 	if len(ugraph) == 0:
 		sys.stderr.write("Couldn't find any linking graph at this size setting!\n")
