@@ -272,7 +272,7 @@ parents, children = getTFparents(opts.network)
 # those genes which have TF children are transcriptional hubs
 tf_candidates = set()
 for tf in children:
-	if len(children[tf]) >= opts.min_tf_children:
+	if len(children[tf]) >= int(opts.min_tf_children):
 		tf_candidates.add(tf)
 
 # get expression activity scores

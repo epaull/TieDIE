@@ -122,8 +122,8 @@ class ActivityScores:
 		if len(mrObj.candidates) == 0:
 			raise Exception("Error: no canidate hubs at this min cutoff")
 		# perform 1000 random permutations of the data to get significance scores for each
-		result = mrObj.scoreCandidates(nperms)
-		
+		result = mrObj.scoreCandidates()
+
 		tfs_heats = {}
 		all_pvals = []
 		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
@@ -168,6 +168,9 @@ class ActivityScores:
 			k = 1
 			i = 0
 			for pval in pvals:
+
+				if pval == "NA":
+					break
 
 				if float(pval) > (k*alpha)/m:
 					break
@@ -218,6 +221,12 @@ class ActivityScores:
 			scores[c] = pval
 
 		return scores	
+
+	def scoreCandidatesBG(self):
+		# FIXME:
+		# Score canididates against a set of scores generated with permuted sample labels
+		# i.e. labels are permuted, SAM is re-run to produce a background set of scores
+
 
 	def scoreCandidates(self, threshold=0.05, nperms=1000):
 	
