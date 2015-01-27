@@ -791,3 +791,25 @@ def geomMean(scoresA, scoresB):
 		combined[key] = math.pow(scoresA[key]*scoresB[key], 0.5)
 
 	return combined
+
+def getSignificance(permuted_inputs, fixed_inputs, diffuser, size_control, alpha_score):
+	""" 
+	permuted_inputs:
+		- a list of input heat vectors (hash-key)
+	"""
+	fixed_diffused_heats = diffuser.diffuse(fixed_inputs)
+	for permuted_input in permuted_inputs:
+		permuted_diffused =  diffuser.diffuse(permuted_input)
+		cutoff, score = findLinkerCutoff(heats, down_heats, diffused_heats, down_heats_diffused, size_control)
+		permuted_scores.append(score)
+
+	# just calculate the number of permuted sets that scored better than the real input set. 
+	no_gte = 0.0
+	for val in sorted(permuted_scores, reverse=True):
+		if val >= alpha_score:
+			no_gte += 1
+		else:
+			break
+	pval = (no_gte+1)/(permutations+1)
+
+	return (pval, permuted_scores)
