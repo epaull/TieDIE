@@ -1,4 +1,4 @@
-#!/usr/bin/env  python2.7
+#!/usr/bin/env  python
 
 from numpy import genfromtxt, dot
 import sys
@@ -89,9 +89,9 @@ class SciPYKernel:
         """
             Return the set of all node/gene labels used by this kernel object
         """
-        all_labels = set()
-        for label in self.labels:
-            all_labels = all_labels.union(set(self.labels[label]))
+        #all_labels = set()
+        #for label in self.labels:
+        all_labels = set(self.labels)
 
         return all_labels
 
