@@ -69,6 +69,7 @@ Number of random permutations performed for significance analysis (default 1000)
 parser.add_option("--pagerank",dest="pagerank",action="store_true",default=False,
 help="Use Personalized PageRank to Diffuse")
 parser.add_option("--all_paths",dest="all_paths",action="store_true",default=False)
+parser.add_option("--output_folder",dest="output_folder",action="store",default='TieDIE')
 (opts, args) = parser.parse_args()
 
 # local imports assume the directory structure from github . 
@@ -289,15 +290,7 @@ size_control = float(opts.size)
 search_depth = int(opts.depth)
 
 # set the output folder for the reports and networks, create the directory
-out_prefix = os.path.dirname(opts.up_heats)
-if out_prefix == "":
-	out_prefix = "."
-output_folder = out_prefix+"/TieDIE_RESULT_size="+str(opts.size)+"_depth="+str(opts.depth)
-if opts.alpha:
-	output_folder = out_prefix+"/TieDIE_RESULT_"+str(opts.alpha)
-if opts.pagerank:
-	output_folder += "_PAGERANK"
-
+output_folder = opts.output_folder
 if not os.path.exists(output_folder):
 	os.mkdir(output_folder)
 
