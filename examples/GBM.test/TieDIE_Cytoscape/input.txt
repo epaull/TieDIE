@@ -1,0 +1,10 @@
+PIK3R1	19	+
+PIK3CA	17	+
+PTEN	36	+
+AKT1	10	+
+AKT3	10	+
+FOXO3	30	+
+CDKN1A	5	+
+P16	80	+
+G2/M_arrest	100	+
+cell_cycle_progression	100	+
