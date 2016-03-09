@@ -1,12 +1,13 @@
 FOXO	-a>	cell_cycle_progression
 FOXO	-a>	CDKN1A
 FOXO	-a>	CDKN1B
+CCND1	-a>	CCND-CDK6_complex
+CCND1	-a>	CCND-CDK4_complex
 INK4	-a>	CCND-CDK6_complex
 INK4	-a>	CCND-CDK4_complex
-AKT	-a>	MDM2
-AKT	-a>	CDKN1B
 FOXO3	-a>	FOXO
 FOXO1	-a>	FOXO
+P16	-a>	INK4
 FOXO4	-a>	FOXO
 CCND-CDK4_complex	-a>	INK4
 CCND-CDK4_complex	-a>	ERK

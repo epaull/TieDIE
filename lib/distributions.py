@@ -1,6 +1,7 @@
 
 from scipy.stats import norm
 from math import log
+import numpy as np
    
 class Dist: 
 
@@ -44,7 +45,8 @@ class Dist:
 				vector: background distribution to fit
 
 		"""
-		mean, sd = norm.fit([v for v in vector])		
+		EPSILON = 0.00001
+		mean, sd = norm.fit([float(v)+EPSILON for v in vector])		
 		self.mean = mean
 		self.sd = sd
 
@@ -67,3 +69,179 @@ class Dist:
 		z_score = (test_value - self.mean) / self.sd
 		return z_score
 		
+class EmpiricalDist: 
+
+	"""
+	Transform data into empirical distribution and convert scores to z-scores for each sample
+	"""
+
+	def __init__(self, data, background=None):
+		"""
+		data: a double hash, indexed by sample, then by node id. 
+			
+		"""
+
+		# indexed by node	
+		self.raw = {}
+		for sample in data:
+			for key in data[sample]:
+				if key not in self.raw:
+					self.raw[key] = {}
+				self.raw[key][sample] = float(data[sample][key])
+
+		self.bg = {}
+		if background:
+			for sample in background:
+				for key in background[sample]:
+					if key not in self.bg:
+						self.bg[key] = {}
+					self.bg[key][sample] = float(background[sample][key])
+
+
+		# zTransform each node vector
+		self.transformed = {}
+		if background:
+			for node in self.raw:
+				if node not in self.bg:
+					continue
+				self.transformed[node] = EmpiricalDist.zTransformBG(self.raw[node], self.bg[node])
+		else:
+			for node in self.raw:
+				self.transformed[node] = EmpiricalDist.zTransform(self.raw[node])
+
+	@staticmethod
+	def zTransformBG(test_vector, background_vector):
+		"""
+			Input:
+				vector: a sample-indexed hash with scores
+
+			Output:
+				A sample-indexed hash with z-scores
+		"""
+
+		# get test data
+		sample_order = []
+		x = []
+		for sample in test_vector:
+			sample_order.append(sample)
+			x.append(test_vector[sample])	
+
+		# background data
+		bg = []
+		for sample in background_vector:
+			bg.append(background_vector[sample])	
+
+		mean = sum(bg)/float(len(bg))
+		std_dev = np.var(bg)**0.5
+		z_scores = [(x_i - mean)/std_dev for x_i in x]
+		standardized = {}
+		for i in range(0, len(sample_order)):
+			standardized[sample_order[i]] = z_scores[i]
+
+		return standardized
+
+	@staticmethod
+	def zTransform(vector):
+		"""
+			Input:
+				vector: a sample-indexed hash with scores
+
+			Output:
+				A sample-indexed hash with z-scores
+		"""
+
+		sample_order = []
+		x = []
+		for sample in vector:
+			sample_order.append(sample)
+			x.append(vector[sample])	
+
+		mean = sum(x)/float(len(x))
+		std_dev = np.var(x)**0.5
+		z_scores = [(x_i - mean)/std_dev for x_i in x]
+		standardized = {}
+		for i in range(0, len(sample_order)):
+			standardized[sample_order[i]] = z_scores[i]
+
+		return standardized
+
+	def getZscores(self):
+
+		sample_indexed_data = {}
+		for node in self.transformed:
+			for sample in self.transformed[node]:
+				if sample not in sample_indexed_data:
+					sample_indexed_data[sample] = {}
+				sample_indexed_data[sample][node] = self.transformed[node][sample]
+
+		return sample_indexed_data
+	
+	def getZscoresByGene(self):
+		return self.transformed
+	
+class EmpiricalDistBySample: 
+
+	"""
+	Transform data into empirical distribution and convert scores to z-scores for each sample
+	"""
+
+	def __init__(self, data):
+		"""
+		data: a double hash, indexed by sample, then by node id. 
+			
+		"""
+
+		# indexed by node	
+		self.raw = {}
+		for sample in data:
+			for key in data[sample]:
+				if sample not in self.raw:
+					self.raw[sample] = {}
+				self.raw[sample][key] = float(data[sample][key])
+
+		# zTransform each node vector, and map back to index first by nodes, then samples
+		self.transformed = {}
+		for sample in self.raw:
+			node_scores = EmpiricalDistBySample.zTransform(self.raw[sample])
+			# index by node, then by sample
+			for node in node_scores:
+				if node not in self.transformed:
+					self.transformed[node] = {}
+				self.transformed[node][sample] = node_scores[node]
+
+	@staticmethod
+	def zTransform(vector):
+		"""
+			Input:
+				vector: a sample-indexed hash with scores
+
+			Output:
+				A sample-indexed hash with z-scores
+		"""
+
+		node_order = []
+		x = []
+		for node in vector:
+			node_order.append(node)
+			x.append(vector[node])	
+
+		mean = sum(x)/float(len(x))
+		std_dev = np.var(x)**0.5
+		z_scores = [(x_i - mean)/std_dev for x_i in x]
+		standardized = {}
+		for i in range(0, len(node_order)):
+			standardized[node_order[i]] = z_scores[i]
+
+		return standardized
+
+	def getZscores(self):
+
+		sample_indexed_data = {}
+		for node in self.transformed:
+			for sample in self.transformed[node]:
+				if sample not in sample_indexed_data:
+					sample_indexed_data[sample] = {}
+				sample_indexed_data[sample][node] = self.transformed[node][sample]
+
+		return sample_indexed_data
+	

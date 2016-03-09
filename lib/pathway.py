@@ -6,18 +6,38 @@ import re
 
 class Pathway:
 
-	def __init__(self, network=None, validator=None):
+	"""
+		This class encapsulates path-validation logic code. For example, you may
+		want to find all paths from a given mutation, though pathway edges that
+		represent both activation and inactivation relationships between genes or 
+		complexes, to a given set of transcription factors. This code operates
+		at the 'path' level and can therefore find all edges that are contained in
+		each one path that is consistent from the source to target node (i.e. if the 
+		source is activated in class A, transmits a signal through only activating edges and 
+		reaches a transcription factor with activity in class A). 
+	"""
+	def __init__(self, network=None, validator=None, opts=None):
 		'''
 		Input:
 			network - Object in {'source':set( (interaction, target), (interaction, target)...}
 			Data format.
 
 		'''
-		if network:
-			self.setGraph(network)
+		self.validator = None
 		if validator:
 			self.validator = validator
-	
+
+		if opts and 'directed' in opts:
+			self.directed = opts['directed']
+		else:
+			self.directed = True
+
+		self.undirected_types = None
+		if opts and 'undirected_edges' in opts:
+			self.undirected_types = opts['undirected_edges']
+
+		if network:
+			self.setGraph(network)
 
 	def setGraph(self, network):
 		'''
@@ -27,12 +47,20 @@ class Pathway:
 		self.G = nx.MultiDiGraph()
 		for source in network:
 			for (i, target) in network[source]:
-				action, type = Pathway.classifyInteraction(i)		
+				action, type = self.classifyInteraction(i)		
 				self.G.add_edge(source, target, type=type, action=action, i=i)
 				# these are non-directed interactions: duplicate the graph
-				if type == "INTERACTS":
+				if type == "INTERACTS" or not self.directed:
 					self.G.add_edge(target, source, type=type, action=action, i=i)
-					
+
+	def getEdges(self):
+
+		edges = set()
+		for (A,B) in self.G.edges():
+			i = self.G[A][B][0]['i']
+			edges.add( (A, i, B) )
+							
+		return edges	
 
 	def getActionPath(self, path):
 
@@ -51,13 +79,60 @@ class Pathway:
 
 		return edges
 
+	def getEdges(self):
+	
+		self.edges = set()
+		for (A, B) in self.G.edges():
+			self.edges.add((A, self.G[A][B][0]['i'], B))
+
+		return self.edges
+			
+
 	def allPaths(self, sources, targets, max_depth):
+		# FIXME: this is very slow, particularly for larger depths, but in
+		# practice it hasn't been an issue
+		paths = []
+		for source in sources:
+			if source not in self.G.nodes():
+				continue
+			for target in targets:
+				if target not in self.G.nodes():
+					continue
+				if source in self.G and target in self.G:
+					for path in  nx.all_simple_paths(self.G, source, target, max_depth):
+						paths.append(path)
+
+		return paths
+
+	def allShortestPathEdges(self, sources, targets):
 
 		# FIXME: this is very slow, particularly for larger depths, but in
 		# practice it hasn't been an issue
 		edges = set()
 		for source in sources:
+			if source not in self.G.nodes():
+				continue
 			for target in targets:
+				if target not in self.G.nodes():
+					continue
+				if source in self.G and target in self.G:
+					edges = edges.union(self.getShortestPath(source, target))
+
+		return edges
+
+	def allPathEdges(self, sources, targets, max_depth, noSelf=False):
+
+		# FIXME: this is very slow, particularly for larger depths, but in
+		# practice it hasn't been an issue
+		edges = set()
+		for source in sources:
+			if source not in self.G.nodes():
+				continue
+			for target in targets:
+				if target not in self.G.nodes():
+					continue
+				if noSelf and source == target:
+					continue
 				if source in self.G and target in self.G:
 					edges = edges.union(self.getPaths(source, target, max_depth))
 
@@ -68,11 +143,29 @@ class Pathway:
 		edges = set()
 		for path in  nx.all_simple_paths(self.G, source, target, max_depth):
 			# validate paths
-			if not self.validator.validate(path, self):
+			if self.validator and not self.validator.validate(path, self):
 				continue
 			# add edges to the path list
 			edges = edges.union(self.pathToEdges(path))
  
+	 	return edges
+
+	def getShortestPath(self, source, target):
+
+		edges = set()
+		if not nx.has_path(self.G, source, target):
+			return edges
+
+		path = nx.shortest_path(self.G, source, target)
+		# validate paths
+		if len(path) == 1:
+			return edges
+	
+		if self.validator and not self.validator.validate(path, self):
+			return edges
+		# add edges to the path list
+		edges = edges.union(self.pathToEdges(path))
+
 	 	return edges
 
 
@@ -145,14 +238,17 @@ class Pathway:
 		for edge in edges:
 			fh.write("\t".join(edge)+"\n")
 
-	@staticmethod
-	def classifyInteraction(i):
+	def classifyInteraction(self, i):
 		componentRE = re.compile("^-?component>$")
-		activatingRE = re.compile("^-?(\S)>$")
-		inactivatingRE = re.compile("^-?(\S)\|$")
+		activatingRE = re.compile("^-?(\S+)>$")
+		inactivatingRE = re.compile("^-?(\S+)\|$")
 		rewiredAC = re.compile("^-?REWIRED>$")
 		rewiredIN = re.compile("^-?REWIRED\|$")
-	
+
+		# user supplied undirected key types
+		if i in self.undirected_types:
+			return (1, "INTERACTS")
+
 		if componentRE.match(i):
 			return (0, "component")
 		elif activatingRE.match(i):
@@ -169,8 +265,8 @@ class Pathway:
 			return (-1, type.group(1))
 		else:
 			# default to activating links for HPRD or other protein
-			# component links. These are bi-directional
-			return (1, "INTERACTS")
+			# component links. 
+			return (1, i)
 
 	def parseNet(self, network):
 		'''
@@ -185,7 +281,8 @@ class Pathway:
 			target = parts[2]
 
 			# zero actions: component links	
-			action, type = Pathway.classifyInteraction(interaction)		
+			action, type = self.classifyInteraction(interaction)		
+			
 			# skip component links, and anything else that doesn't have an associated action value
 			if action == 0:
 				continue
@@ -231,6 +328,10 @@ class BasicPathValidator:
 			raise Exception("Error: path start not a source node:"+path[0])
 		if path[-1] not in target_set:
 			raise Exception("Error: path end not a target node:"+path[-1])
+
+		# trivial validation
+		if 'source_actions' not in self.sets or 'target_actions' not in self.sets:
+			return True
 
 		# check that the pathway action checks out with the source/target actions
 		path_action = pathwayObj.getActionPath(path)
@@ -318,6 +419,8 @@ class TriplesValidator:
 	'''
 		Takes a path, and a graph object, and validates it based on a given set of rules
 		implements validate(), 
+	
+		Validate actions of all three sets as well as 
 	'''
 	def __init__(self, input_sets):
 		'''
@@ -348,7 +451,10 @@ class TriplesValidator:
 		target_set = self.sets['target']
 		signaling_set = self.sets['signaling']
 
-		source_action = float(self.sets['source_actions'][path[0]]+"1")
+		source_action = None
+		if self.consider_signs is True:
+			source_action = float(self.sets['source_actions'][path[0]]+"1")
+
 		all = source_set.union(target_set).union(signaling_set)
 		source_target_sets = source_set.union(target_set)
 
@@ -359,7 +465,8 @@ class TriplesValidator:
 			raise Exception("Error: path end not a target node:"+path[-1])
 
 		# paths must be at least 3 steps (and include a 'signaling' gene)
-		if len(path) < 3:
+		# unless it starts with a gene in the signaling set
+		if len(path) < 3 and path[0] not in signaling_set:
 			return False
 
 		# check signaling genes
@@ -380,8 +487,12 @@ class TriplesValidator:
 
 	def validate(self, path, pathwayObj):
 
+		if 'source_actions' not in self.sets:
+			return self.isValid(path, pathwayObj)
+
 		path_action = pathwayObj.getActionPath(path)
 		valid_action = 1
+
 		if self.sets['source_actions'][path[0]] == "-":
 			valid_action = -1*valid_action
 		if self.sets['target_actions'][path[-1]] == "-":
@@ -389,6 +500,49 @@ class TriplesValidator:
 		
 		if path_action != valid_action and self.consider_signs:
 			return False	
+
+		return self.isValid(path, pathwayObj)
+
+class NodeConsistencyValidator:
+	
+
+	'''
+		Takes a path, and a graph object, and validates it based on a given set of rules
+		implements validate(), 
+	
+		Validate actions of all three sets as well as 
+	'''
+	def __init__(self, dataset):
+		'''
+			A gene/node indexed hash with floating point scores for each
+		'''	
+		self.dataset = dataset
+
+	def isValid(self, path, pathwayObj):
+		'''
+			Don't validate the first and last node on the path. Check each data point to 
+			start postive, then 
+		'''
+
+		for i in range(1, len(path)):
+
+			# get edge type
+			action = pathwayObj.getActionPath( (path[i-1], path[i]) )
+			source_score = self.dataset[path[i-1]]
+			target_score = self.dataset[path[i]]*action
+			if abs(target_score) < 1.5:
+				# must be in similar range if at a low level
+				if abs(target_score - source_score) > 1:
+					return False
+			else:
+				# if they're a high value, they must be the same sign at least 
+				if target_score > 0 and source_score < 0 or target_score < 0 and source_score > 0:
+					return False
+
+		# validated
+		return True
+
+	def validate(self, path, pathwayObj):
 
 		return self.isValid(path, pathwayObj)
 

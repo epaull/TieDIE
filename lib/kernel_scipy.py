@@ -95,30 +95,6 @@ class SciPYKernel:
 			b = self.index2node[j]
 			print "\t".join([a,b,str(v)])
 
-	def getKernelMatrix(self):
-		"""
-		Write the computer kernel to the supplied output file
-		"""
-		cx = self.kernel.tocoo()
-		edges = {}
-		for i,j,v in zip(cx.row, cx.col, cx.data):
-			a = self.index2node[i]
-			b = self.index2node[j]
-			edges[(a,b)] = str(v)
-
-		# index by column, then row
-		data = {}
-
-		for nodeA in sorted(self.labels):
-			data[nodeA] = {}
-		
-			# through columns	
-			for nodeB in sorted(self.labels):
-				if (nodeA, nodeB) in edges:
-					data[nodeA][nodeB] = float(edges[(nodeA, nodeB)])
-
-		return data
-
 	def writeKernel(self, output_file):
 		"""
 		Write the computer kernel to the supplied output file

@@ -2,6 +2,8 @@
 from copy import copy
 from random import shuffle, sample
 from random import shuffle
+import random
+import sys
 
 class NetBalancedPermuter:
     """
@@ -13,28 +15,16 @@ class NetBalancedPermuter:
         of input nodes is preserved.
     """
 
-
-    def __init__(self, network, up_set):
-        """
-            Input:
-                network: net[source] = [(i, t)]
-                up_set: up_set[node] = score
-        """
+    def __init__(self, network):
+            #Input:
+            #    network: net[source] = [(i, t)]
     
-
         # store node-degrees for all in network
-        self.degrees = {}
 
-        # the set of initial nodes to permute within blocks: save it to the 
-        # instantiated object here
-        self.nodes = up_set.keys()
-        # heuristic: block needs to be significantly larger than the input set size
-        BLOCK_MULTIPLE = 10
-        self.block_size = len(self.nodes)*BLOCK_MULTIPLE
-        self.scores = {}
-        for node in self.nodes:
-            # save the scores as a set of tuples 
-            self.scores[(node, str(up_set[node]))] = 1
+        self.seed = random.randint(0, sys.maxint)
+        random.seed(self.seed)
+
+        self.degrees = {}
 
         # Compute total degree for each node in the network
         for source in network:
@@ -53,7 +43,23 @@ class NetBalancedPermuter:
         # reverse-sort the degrees of all nodes in the network.
         self.sorted_degrees = sorted(self.degrees.items(), key=lambda x:x[1], reverse=True)
 
-            
+
+    def setSeedNodes(self, seed_nodes):
+        """
+        Take a set of input nodes and respective scores as the seed for the balanced-permutation
+        step.
+        """
+        # the set of initial nodes to permute within blocks: save it to the 
+        # instantiated object here
+        self.nodes = seed_nodes.keys()
+        # heuristic: block needs to be significantly larger than the input set size
+        BLOCK_MULTIPLE = 10
+        self.block_size = len(self.nodes)*BLOCK_MULTIPLE
+        self.scores = {}
+        for node in self.nodes:
+            # save the scores as a set of tuples 
+            self.scores[(node, str(seed_nodes[node]))] = 1
+
     def permuteBlock(self, block):
         """
         Take a block of nodes and randomly shuffle using python's random.shuffle method.      
@@ -116,6 +122,9 @@ class NetBalancedPermuter:
             permuted.append(self.permuteOne())
 
         return permuted
+
+    def getSeed(self):
+        return self.seed
 
 class SupervisedPermuter:
     """

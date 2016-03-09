@@ -28,7 +28,7 @@
 ###		Information and warnings are logged to standard error
 
 
-import os, sys
+import os, sys, dill
 from collections import defaultdict
 from optparse import OptionParser
 parser = OptionParser()
@@ -42,7 +42,7 @@ parser.add_option("-n","--network",dest="network",action="store",
         "'<source> <(-a>,-a|,-t>,-t|,-component>)> <target>'")
 
 # optional arguments
-parser.add_option("-p","--permute",dest="permute",action="store",default=50,
+parser.add_option("-p","--permute",dest="permute",action="store",default=1000,
         type="int",help="Number of random permutations performed for "
         "significance analysis (default 50)")
 parser.add_option("--pagerank",dest="pagerank",action="store_true",
@@ -74,6 +74,7 @@ from ppr import PPrDiffuser
 from permute import NetBalancedPermuter
 import tiedie_util
 from linkers import *
+from scoring import Scoring
 from tiedie_util import *
 from itertools import combinations
 from master_reg import ActivityScores
@@ -83,60 +84,92 @@ if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
 	from kernel_scipy import SciPYKernel
 
-def getPVAL(setA, setB, network, diffuser, writeToFile=None):
-    # TODO add docstring!
+def getUnifiedBackground(sets, network, diffuser, size_control):
+	"""
+	"""
 
 	# Instantiate to perform random permutations of the upstream heats, using the topology of the network
 	# to correct for node degree
-	perObj_setA = NetBalancedPermuter(network, setA)
-	perObj_setB = NetBalancedPermuter(network, setB)
-	# Perform the number random permutations specified (default 1000)
-	permutedHeats_setA = perObj_setA.permute(PERMUTE)
-	permutedHeats_setB = perObj_setB.permute(PERMUTE)
-	# scores for each of the permutations
-	permuted_kldiv = []
+	perObj = NetBalancedPermuter(network)
+	permuted_input_heats = {}
+	diffused_inputs = {}
+	for set in sets:
+		perObj.setSeedNodes(sets[set])
+		# store an array of all permutations of the input heats
+		permuted_input_heats[set] = perObj.permute(int(math.ceil(PERMUTE/2.0)))
+		diffused_inputs[set] = diffuser.diffuse(sets[set], reverse=False)
 
-	# diffuse original heats, get the KL divergence between vectors
+	# get the real subnetwork, compute the TieDIE score of the original input sets
+	# use the same alpha-cutoff found in the multi-tiedie solution
+	linkers, real_score, linker_scores, cutoff = Scoring.scoreInputs(network, sets, diffused_inputs, size_control)
+
+	permuted_scores = []
+	for set in sets:
+		# hold the other inputs fixed while we permute this one
+		# diffuse the permuted scores, then find the Relevance score for that permuted set 
+		diffused_permuted = diffuser.diffuse(permuted_input_heats[set])
+
+		# iterate through each permutation of this input set
+		for permuted_heats in permuted_input_heats[set]:
+			p_input_sets = {}
+			p_diffused_input_sets = {}
+			for alt_set in sets:
+				if alt_set == set:
+					# use permutedd scores for this set and diffuse them
+					p_input_sets[alt_set] = permuted_heats
+					p_diffused_input_sets[alt_set] = diffuser.diffuse(permuted_heats)
+				else:
+					# all other sets are held to the original values
+					p_input_sets[alt_set] = sets[alt_set]
+					p_diffused_input_sets[alt_set] = diffused_inputs[alt_set]
+
+			# get the angle between these
+			p_linkers, p_score, p_linker_scores, p_cutoff = Scoring.scoreInputs(network, p_input_sets, p_diffused_input_sets, size_control)
+			permuted_scores.append(p_score)
+
+	return (real_score, permuted_scores, perObj.getSeed())
+
+def getBackground(setA, setB, network, diffuser, size_control):
+	"""
+	"""
+
+	# Instantiate to perform random permutations of the upstream heats, using the topology of the network
+	# to correct for node degree
+	perObj = NetBalancedPermuter(network)
+	perObj.setSeedNodes(setA)
+	permutedHeats_setA = perObj.permute(int(math.ceil(PERMUTE/2.0)))
+
 	setA_diffused = diffuser.diffuse(setA, reverse=False)
 	setB_diffused = diffuser.diffuse(setB, reverse=True)
-	real_kldiv = ProbDistance.getSymmetricMeasure(setA_diffused, setB_diffused)
+
+	# get the real subnetwork, compute the TieDIE score of the original input sets
+	# use the same alpha-cutoff found in the multi-tiedie solution
+	linkers, real_score, linker_scores, cutoff = Scoring.scoreInputs(network, {'source':setA, 'targets':setB}, {'source':setA_diffused, 'targets':setB_diffused}, size_control)
 
 	# permuted upstream 'sources'
-	for heats in permutedHeats_setA:
+	permuted_scores_fixedB = []
+	for permuted_heats in permutedHeats_setA:
 		# diffuse the permuted scores, then find the Relevance score for that permuted set 
-		diffused_heats =  diffuser.diffuse(heats)
+		diffused_permuted =  diffuser.diffuse(permuted_heats)
 		# get the angle between these
-		kldiv = ProbDistance.getSymmetricMeasure(setB_diffused, diffused_heats)
-		permuted_kldiv.append(kldiv)
-	# permuted downstream 'targets'
-	for heats in permutedHeats_setB:
-		# diffuse the permuted scores, then find the Relevance score for that permuted set 
-		diffused_heats =  diffuser.diffuse(heats)
-		# get the angle between these
-		kldiv = ProbDistance.getSymmetricMeasure(setA_diffused, diffused_heats)
-		permuted_kldiv.append(kldiv)
+		p_linkers, p_score, p_linker_scores, p_cutoff = Scoring.scoreInputs(network, {'source':permuted_heats, 'targets':setB}, {'source':diffused_permuted, 'targets':setB_diffused}, size_control)
+		permuted_scores_fixedB.append(p_score)
 
-	# just calculate the number of permuted sets that scored better than the real input set. 
-	no_lte = 0.0
-	for val in sorted(permuted_kldiv):
-		if val <= real_kldiv:
-			no_lte += 1
+	return (real_score, permuted_scores_fixedB)
+
+def getPVAL(real_score, bg_scores):
+	bg_size = len(bg_scores)
+
+	no_gte = 0.0
+	for val in sorted(bg_scores, reverse=True):
+		if val >= real_score:
+			no_gte += 1
 		else:
 			break
 
-	if writeToFile:
-		fh = open(writeToFile, 'w')
-		fh.write("Real:"+str(real_kldiv)+"\n")
-		fh.write("Score\n")
-		for val in permuted_kldiv:
-			fh.write(str(val)+"\n")
-		fh.close()
+	empirical_pval = (no_gte+1)/(bg_size+1)
 
-	# fit to lognormal, get p-value
-	empirical_pval = (no_lte+1)/(PERMUTE*2+1)
-	gauss_fit_pval = Dist.fitLogNorm(permuted_kldiv, real_kldiv)
-
-	return (empirical_pval, gauss_fit_pval)
+	return empirical_pval
 
 PERMUTE = int(opts.permute)
 
@@ -148,12 +181,19 @@ network_nodes = getNetworkNodes(network)
 input_heats = {}
 input_actions = {}
 input_nodes = set()
+first = True
 for file in args:
 	input_heat, signs = parseHeats(file)
 	input_heats[file] = input_heat
 	input_actions[file] = signs
 	for gene in input_heats[file]:
 		input_nodes.add(gene)
+
+	weight = 1000
+	#if first:
+	#	weight = 4000
+	#	first = False
+	input_heats[file], signs = normalizeHeats(input_heats[file], weight)
 
 output_folder = opts.output
 if opts.pagerank:
@@ -174,17 +214,18 @@ if opts.pagerank:
 else:
 	if opts.kernel is not None:
 		sys.stderr.write("Loading Heat Diffusion Kernel..\n")
-		# load a heat diffusion kernel to perform diffusion
-		diffuser = Kernel(opts.kernel)
+		# Dill is the fastest way to load this by far: 
+		# Thanks Josh L. Espinoza for adding this option! 
+		if opts.kernel.endswith('.obj'):
+			diffuser = dill.load(open(opts.kernel, 'rb'))
+		else:
+		# create the kernel from a tab-separated matrix text file (slow)
+			diffuser = Kernel(opts.kernel)
 	else:
 		sys.stderr.write("Using SCIPY to compute the matrix exponential, t=0.1...\n")
 		# No kernel supplied: use SCIPY to generate a kernel on the fly, and then use it
 		# for subsequent diffusion operations
 		diffuser = SciPYKernel(opts.network)
-
-# normalize input heats to sum to 1
-for input in input_heats:
-	input_heats[input], signs = normalizeHeats(input_heats[input])
 
 print "Diffusing Heats..."
 diffused_heats = {}
@@ -211,32 +252,79 @@ if opts.d_expr:
 	# diffuse heats from these tfs
 	diffused_heats["tfs"] = diffuser.diffuse(tfs_heats)
 
-# compute all pairwise distances, validate the input sets first
-print "Computing pairwise p-values between sets"
-print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
-for input1, input2 in combinations(input_heats, 2):
-
-	# print kl divergence
-	real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1],
-            diffused_heats[input2])
-	#print "\t".join([input1, input2, str(real_kldiv)])
-	output_file = output_folder+"/"+input1.replace('/', '.')+":"+input2.replace('/','.')+".dist.txt"
-	empirical_p, fitted_p = getPVAL(input_heats[input1],
-            input_heats[input2], network, diffuser, output_file)
-	print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
-
-print "done"				
-
 # do a full TieDIE run: save heat values
 # write the cytoscape output file
 print "Running TieDIE with Standard Settings..."
 std_options = copy.copy(opts)
-subnet_soln, subnet_soln_nodes, linker_heats, cutoff = \
+subnet_soln, subnet_soln_nodes, linker_heats, alpha_cutoff = \
         extractSubnetwork(network, input_heats, diffused_heats, opts.size, std_options)
 writeNAfile(output_folder+"/heats.NA", linker_heats, "LinkerHeats")
 writeHEATS(output_folder+"/heats.tab", linker_heats)
 writeNetwork(subnet_soln, output_folder+"/TieDIE.sif")
 print "done"
+
+# Optional: Run TieDIE on the cohort data, over a range of size-options over a range
+
+# compute all pairwise distances, validate the input sets first
+print "Computing p-value ..."
+score, background_scores, random_seed = getUnifiedBackground(input_heats, network, diffuser, opts.size)
+empirical_p = getPVAL(score, background_scores)
+print empirical_p
+random_seed_file = output_folder+'/seed.txt'
+fh = open(random_seed_file, 'w')
+fh.write(str(random_seed)+'\n')
+fh.close()
+
+score_bg = output_folder+'/score.txt'
+fh = open(score_bg, 'w')
+fh.write('Score'+'\n')
+fh.write(str(score)+'\n')
+fh.close()
+
+output_bg = output_folder+'/permutations.txt'
+fh = open(output_bg, 'w')
+fh.write('Score'+'\n')
+for bg_score in background_scores:
+	fh.write(str(bg_score)+'\n')
+fh.close()
+
+print "Computing pairwise p-values between sets"
+print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
+for input1, input2 in combinations(input_heats, 2):
+
+	input1_name = input1.split('/')[-1]
+	input2_name = input2.split('/')[-1]
+	# hold the second input set constant, permute set A and calculate fixed p-value
+	scoreA, backgroundA = getBackground(input_heats[input1], input_heats[input2], network, diffuser, opts.size)
+	# redo with the other set fixed/variable
+	scoreB, backgroundB = getBackground(input_heats[input2], input_heats[input1], network, diffuser, opts.size)
+	if scoreA != scoreB:
+		print "Error: background scores must be identical!"
+		sys.exit(1)
+	
+	score_bg = output_folder+'/'+input1_name+'_'+input2_name+'.score.txt'
+	fh = open(score_bg, 'w')
+	fh.write('Score'+'\n')
+	fh.write(str(scoreA)+'\n')
+	fh.close()
+
+	bg_scores = []
+	for score in backgroundA:
+		bg_scores.append(score)
+	for score in backgroundB:
+		bg_scores.append(score)
+
+	empirical_p = getPVAL(scoreA, bg_scores)
+
+	output_bg = output_folder+'/'+input1_name+'_'+input2_name+'.permutations.txt'
+	fh = open(output_bg, 'w')
+	fh.write('Score'+'\n')
+	for bg_score in bg_scores:
+		fh.write(str(bg_score)+'\n')
+	fh.close()
+	print "\t".join([input1, input2, str(empirical_p)])
+
+print "done"				
 
 # Optional: Run TieDIE on the cohort data, over a range of size-options over a range
 # of subsampled inputs. Store a distribution of heats for each node and each 

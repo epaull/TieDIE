@@ -14,6 +14,20 @@ def parseLST(file):
 
 	return lst
 
+def transpose(data):
+	"""
+	Take a dict[index_A][index_B] and reverse items so it's
+	indexed dict[index_B][index_A]
+	"""
+	data_t = {}
+	for idx_A in data:
+		for idx_B in data[idx_A]:
+			if idx_B not in data_t:
+				data_t[idx_B] = {}
+			data_t[idx_B][idx_A] = data[idx_A][idx_B]
+			
+	return data_t
+
 def parseHeats(file, network_nodes=None):
 	"""
 	Parse input heats file in form:
@@ -315,7 +329,7 @@ def classifyState(up_signs, down_signs):
 	return (c, t_states)
 	
 # build an index, source to targets fro the directed graph
-def parseNet(network):
+def parseNet(network, gene_universe=None):
 	"""
 	Build a directed network from a .sif file. 
 	
@@ -336,6 +350,10 @@ def parseNet(network):
 		source = parts[0]
 		interaction = parts[1]
 		target = parts[2]
+
+		# restrict to this gene set if necessary
+		if gene_universe and (source not in gene_universe or target not in gene_universe):
+			continue
 
 		if source not in net:
 			net[source] = set()
@@ -421,21 +439,38 @@ def connectedSubnets(network, subnet_nodes):
 	# use networkx to find the largest connected sub graph
 	G = nx.Graph()
 	G.add_edges_from(list(ugraph))
-	list_of_lists = nx.connected_components(G)	
 		
-	# if no connected components, return the empty set
-	if not list_of_lists:
-		return set()
-
-	# get the biggest connected component, add edges between all 
-	validated_nodes = list_of_lists[0]
+	# get all connected components, add edges between them
 	validated_edges = set()
 	for (s,t) in edgelist:
 		# validate both nodes
-		if s in validated_nodes and t in validated_nodes:
+		if s in G.nodes() and t in G.nodes():
 			validated_edges.add((s,t))	
 
 	return validated_edges	
+
+
+def getNXgraph(network, directed=True):
+
+	"""
+		Convert a hash-style network object into a directed nx graph object
+	"""	
+	# use networkx to find the largest connected sub graph
+	G = None
+	if directed:
+		G = nx.DiGraph()
+	else:
+		G = nx.Graph()
+
+	for s in network:
+		for (i,t) in network[s]:
+			# ignore self-links
+			if s == t:
+				continue
+			G.add_edge(s,t)
+			G[s][t]['i'] = i
+
+	return G
 
 def connectedNodes(network, hot_nodes):
 	"""
@@ -611,36 +646,32 @@ def getNetworkNodes(network):
 			nodes.add(t)
 	return nodes
 
-def parseMatrix(file):
+def parseMatrix(file, restrict_samples=None, binary_threshold=0.0, transpose=False):
 	''' 
 		Sample IDS should be the header line. Gene ids are the row names
 		
 		Input:
 			binary_threshold: 'include data values only if they fall above this range (abs val)
 			tf_parents: 
+
+		Options:
+			transpose: index by rows, then columns, instead of the default column/row spec
 			
 	'''
 
 
 	# indexed by sample then by gene	
-	gene_expression = {}
+	data = {}
 	 
 	first = True
 	sampleIDS = None
 	for line in open(file, 'r'):
 		parts = line.rstrip().split("\t")
-		gene = parts[0]
+		row_id = parts[0]
 		vals = parts[1:]
 		if first:
 			first = False
-			sampleIDS = vals
-			fixedNames = []
-			for i in range(0, len(sampleIDS)):
-				sample = sampleIDS[i]
-				fixedNames.append(sample)
-
-			sampleIDS = fixedNames
-				
+			column_ids = vals
 			continue
 
 		for i in range(0,len(vals)):
@@ -649,16 +680,26 @@ def parseMatrix(file):
 				val = float(vals[i])
 			except:
 				continue
-			sample = sampleIDS[i]		
+			column_id = column_ids[i]		
+
+			if restrict_samples and column_id not in restrict_samples:
+				continue
+			if abs(val) < binary_threshold:
+				continue	
 
 			###
 			### Get the gene expression, indexed by samples
 			###
-			if sample not in gene_expression:
-				gene_expression[sample] = {}
-			gene_expression[sample][gene] = val
+			if not transpose:
+				if column_id not in data:
+					data[column_id] = {}
+				data[column_id][row_id] = val
+			else:
+				if row_id not in data:
+					data[row_id] = {}
+				data[row_id][column_id] = val
 
-	return gene_expression
+	return data
 
 def getTFparents(network):
 	'''
@@ -700,11 +741,11 @@ def getTFparents(network):
 	
 	return (parents, children)	
 
-def normalizeHeats(data):
+def normalizeHeats(data, total=1000):
 	"""
 
 	"""
-	FACTOR = 1000
+	FACTOR = total
 	normalized = {}
 	signs = {}
 	sum = 0.0
@@ -775,41 +816,91 @@ def getActivityScores(expr_data, tf_genes, tf_parents, binary_threshold=0):
 
 	return activities
 
-def geomMean(scoresA, scoresB):
+def Mean(scores):
 	'''
-	Input: 2 hashes of scores across a set of genes
+	Input: an array of scores
 
 	Returns: the geometric mean of these scores
 	'''
+
+	epsilon = 0.00001
+	sum = 0.0
+	for score in scores:
+		sum += score
+	return sum/float(len(scores))
+
+def weightedMean(scoresA, scoresB, w_A):
+	'''
+	Input: 2 hashes of scores across a set of genes
+		- a weight/fraction for the first input
+
+	Returns: the geometric mean of these scores
+	'''
+
+	w_B = 1-w_A	
+
+	combined = {}
+	for key in scoresA:
+		mean = None
+		if key not in scoresB:
+			continue
 	
+		# compute the weighted geometric mean	
+		combined[key] = float(scoresA[key])*w_A + float(scoresB[key])*w_B
+
+	return combined
+
+def mean(scoresA, scoresB, bias):
+	'''
+	Input: 2 hashes of scores across a set of genes
+
+	Returns: the mean of these scores
+	'''
+
+	A_bias = bias
+	B_bias = 1-bias	
 	combined = {}
 	for key in scoresA:
 		mean = None
 		if key not in scoresB:
 			continue
 		
-		combined[key] = math.pow(scoresA[key]*scoresB[key], 0.5)
+		combined[key] = scoresA[key]*A_bias + scoresB[key]*B_bias
 
 	return combined
 
-def getSignificance(permuted_inputs, fixed_inputs, diffuser, size_control, alpha_score):
-	""" 
-	permuted_inputs:
-		- a list of input heat vectors (hash-key)
+
+def correct_pvalues_for_multiple_testing(pvalues, correction_type = "Benjamini-Hochberg"):				
+	"""																								   
+	Stolen from stackoverflow...
+
+	consistent with R - print correct_pvalues_for_multiple_testing([0.0, 0.01, 0.029, 0.03, 0.031, 0.05, 0.069, 0.07, 0.071, 0.09, 0.1]) 
 	"""
-	fixed_diffused_heats = diffuser.diffuse(fixed_inputs)
-	for permuted_input in permuted_inputs:
-		permuted_diffused =  diffuser.diffuse(permuted_input)
-		cutoff, score = findLinkerCutoff(heats, down_heats, diffused_heats, down_heats_diffused, size_control)
-		permuted_scores.append(score)
-
-	# just calculate the number of permuted sets that scored better than the real input set. 
-	no_gte = 0.0
-	for val in sorted(permuted_scores, reverse=True):
-		if val >= alpha_score:
-			no_gte += 1
-		else:
-			break
-	pval = (no_gte+1)/(permutations+1)
-
-	return (pval, permuted_scores)
+	from numpy import array, empty																		
+	pvalues = array(pvalues) 
+	n = float(pvalues.shape[0])																		   
+	new_pvalues = empty(n)
+	if correction_type == "Bonferroni":																   
+		new_pvalues = n * pvalues
+	elif correction_type == "Bonferroni-Holm":															
+		values = [ (pvalue, i) for i, pvalue in enumerate(pvalues) ]									  
+		values.sort()
+		for rank, vals in enumerate(values):															  
+			pvalue, i = vals
+			new_pvalues[i] = (n-rank) * pvalue															
+	elif correction_type == "Benjamini-Hochberg":														 
+		values = [ (pvalue, i) for i, pvalue in enumerate(pvalues) ]									  
+		values.sort()
+		values.reverse()																				  
+		new_values = []
+		for i, vals in enumerate(values):																 
+			rank = n - i
+			pvalue, index = vals																		  
+			new_values.append((n/rank) * pvalue)														  
+		for i in xrange(0, int(n)-1):  
+			if new_values[i] < new_values[i+1]:														   
+				new_values[i+1] = new_values[i]														   
+		for i, vals in enumerate(values):
+			pvalue, index = vals
+			new_pvalues[index] = new_values[i]																												  
+	return new_pvalues

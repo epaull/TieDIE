@@ -36,23 +36,24 @@ class TestSequenceFunctions(unittest.TestCase):
 		os.system("rm -rf "+out_dir)
 
 	def testRUN(self):
-		cmd = "../bin/tiedie -n "+TEST_PATHWAY+" -k "+TEST_KERNEL+" "+TEST_SOURCE+" "+TEST_TARGET+" -s 1.0 --output test_files"
+
+		test_dir = '/tmp'		
+		cmd = "../bin/tiedie -n "+TEST_PATHWAY+" -k "+TEST_KERNEL+" "+TEST_SOURCE+" "+TEST_TARGET+" -s 1.0 --output "+test_dir
 		print cmd
 		os.system(cmd)
 	
-		output_dir = "test_files/TieDIE/"
 
 		# file output
 		reg_dir = "test_files/REGRESSION/"
-		self.assertTrue( self.filesEqual(output_dir+"TieDIE.sif", reg_dir+"TieDIE.sif") )
-		self.assertTrue( self.filesEqual(output_dir+"heats.NA", reg_dir+"heats.NA") )
-		self.assertTrue( self.filesEqual(output_dir+"heats.tab", reg_dir+"heats.tab") )
-		#self.assertTrue( self.filesEqual(output_dir+"node_heats.txt", reg_dir+"node_heats.txt") )
-		#self.assertTrue( self.filesEqual(output_dir+"edge_frequencies.txt", reg_dir+"edge_frequencies.txt") )
-		#self.assertTrue( self.filesEqual(output_dir+"node_frequencies.txt", reg_dir+"node_frequencies.txt") )
-	
-		#self.cleanup(output_dir)
+		self.assertTrue( self.filesEqual(test_dir+"/TieDIE.sif", reg_dir+"TieDIE.sif") )
+		self.assertTrue( self.filesEqual(test_dir+"/heats.tab", reg_dir+"heats.tab") )
 
+		# these are stochastic based on random seed: need to add method to set seed:
+
+		#self.assertTrue( self.filesEqual(test_dir+"/score.txt", reg_dir+"score.txt") )
+		#self.assertTrue( self.filesEqual(test_dir+"/edge_frequencies.txt", reg_dir+"edge_frequencies.txt") )
+		#self.assertTrue( self.filesEqual(test_dir+"/node_frequencies.txt", reg_dir+"node_frequencies.txt") )
+	
 if __name__ == '__main__':
     unittest.main()
 
