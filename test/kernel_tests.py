@@ -24,7 +24,10 @@ class TestSequenceFunctions(unittest.TestCase):
 		diffuser = SciPYKernel(TEST_PATHWAY)
 		diffused = diffuser.diffuse(input_heats, reverse=False)
 		for (key, val) in diffused.iteritems():
-			self.assertAlmostEqual(val, correct_heats[key], places=10)
+			if val < 1:
+				self.assertAlmostEqual(val, correct_heats[key], places=4)
+			else:
+				self.assertAlmostEqual(val, correct_heats[key], places=2)
 
 	def testDiffuseKernel(self):
 
@@ -34,9 +37,9 @@ class TestSequenceFunctions(unittest.TestCase):
 		diffused = diffuser.diffuse(input_heats, reverse=False)
 		for (key, val) in diffused.iteritems():
 			if val < 1:
-				self.assertAlmostEqual(val, correct_heats[key], places=5)
+				self.assertAlmostEqual(val, correct_heats[key], places=4)
 			else:
-				self.assertAlmostEqual(val, correct_heats[key], places=3)
+				self.assertAlmostEqual(val, correct_heats[key], places=2)
 
 if __name__ == '__main__':
     unittest.main()
