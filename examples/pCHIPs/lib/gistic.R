@@ -2,10 +2,7 @@
 library(reshape)
 library(methods)
 
-rootFolder <- "/ifs/data/c2b2/ac_lab/shares/mappings"
-if (!file.exists(rootFolder)) {
-	rootFolder <- '/Volumes/pancancer/data/mappings'
-}
+rootFolder <- "metadata"
 hugo2entrez <- as.matrix(read.table(paste0(rootFolder, "/hgnc.map"), sep='\t', header=F))
 
 # add interactions in intB to intA
@@ -77,6 +74,73 @@ gisticResult <- setClass("gisticResult", slots=
 		sig.dels="data.frame",
 		sig.amps="data.frame",
 		cytoband="character"))
+
+
+proportions <- function(gisticObj, samples.POS, samples.NEG) {
+	UseMethod("proportions", gisticObj)
+}
+
+proportions.gisticResult <- function(gisticObj, samples.POS, samples.NEG, FDR=0.05) {
+
+	# do a Fisher's exact test on the difference of proportions, with a 1-tail 
+	# to find only those with higher incidence in the POS group
+
+
+	samples.POS <- intersect(colnames(gisticObj@data.by.band), samples.POS)
+	samples.NEG <- intersect(colnames(gisticObj@data.by.band), samples.NEG)
+
+	if (length(samples.POS)==0) { print ("Error, no positive class samples overlapping with gistic data!"); q(); }
+	if (length(samples.NEG)==0) { print ("Error, no negative class samples overlapping with gistic data!"); q(); }
+
+	# compute p-values using Fisher's exact test for differences in the proportions of 
+	# high-level amp or deletion events. Get genomic locations for events.
+	pvals.amps <- sort(apply(gisticObj@data.by.band, 1, function(x) {
+
+		eventsCount.A <- length(which(x[samples.POS] > 1))
+	 	sampleSize.A <- length(samples.POS)
+		eventsCount.B <- length(which(x[samples.NEG] > 1))
+	 	sampleSize.B <- length(samples.NEG)
+		
+		test.res <- fisher.test( matrix(c(eventsCount.A, sampleSize.A, eventsCount.B, sampleSize.B), 
+			ncol=2), alternative='greater')
+		test.res$p.value
+	}))
+	sig.amps <- pvals.amps[which(p.adjust(pvals.amps, method='BY') < FDR)]
+
+	pvals.dels <- sort(apply(gisticObj@data.by.band, 1, function(x) {
+
+		eventsCount.A <- length(which(x[samples.POS] < -1))
+	 	sampleSize.A <- length(samples.POS)
+		eventsCount.B <- length(which(x[samples.NEG] < -1))
+	 	sampleSize.B <- length(samples.NEG)
+		
+		test.res <- fisher.test( matrix(c(eventsCount.A, sampleSize.A, eventsCount.B, sampleSize.B), 
+			ncol=2), alternative='greater')
+		test.res$p.value
+	}))
+	sig.dels <- pvals.dels[which(p.adjust(pvals.dels, method='BY') < FDR)]
+
+	print ("Filtering deletions ...")
+	# filter out anything not called as a sig peak
+	gistic.99conf.dels <- na.omit(unlist(lapply(strsplit(colnames(gisticObj@sig.dels), 'X'), function(x) x[2])))
+	sig.dels <- sig.dels[which(names(sig.dels) %in% gistic.99conf.dels)]
+
+	print ("Converting to HUGO ids...")
+	# convert to gene names
+	sig.dels.HUGO <- na.omit(map.entrez(names(gisticObj@cytoband[which(gisticObj@cytoband %in% names(sig.dels))])))
+
+	print ("Filtering amplifications ...")
+	# filter out anything not called as a sig peak
+	gistic.99conf.amps <- na.omit(unlist(lapply(strsplit(colnames(gisticObj@sig.amps), 'X'), function(x) x[2])))
+	sig.amps <- sig.amps[which(names(sig.amps) %in% gistic.99conf.amps)]
+
+	print ("Converting to HUGO ids...")
+	# convert to gene names
+	sig.amps.HUGO <- na.omit(map.entrez(names(gisticObj@cytoband[which(gisticObj@cytoband %in% names(sig.amps))])))
+
+	return (list(amps=sig.amps.HUGO, dels=sig.dels.HUGO))
+}
+
 
 # Register class method
 mapScores <- function(gisticObj, diggit.interactions, mapping='cytoband', from.p=FALSE, pos.nes.only=TRUE) {
