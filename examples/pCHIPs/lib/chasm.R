@@ -1,7 +1,78 @@
 
 library(reshape)
 library(methods)
-library(mygene)
+
+rootFolder <- "metadata"
+hugo2entrez <- as.matrix(read.table(paste0(rootFolder, "/hgnc.map"), sep='\t', header=F))
+
+map.entrez <- function(entrez.ids) {
+
+	mapped <- map.entrez._internal(entrez.ids)
+	if (all(is.na(mapped))) {
+		return (map.entrez._internal(names(entrez.ids)))
+	}
+	mapped
+}
+
+map.entrez._internal <- function(entrez.ids) {
+        mapped <- c()
+        for (name in entrez.ids) {
+                idx <- which(as.numeric(hugo2entrez[,2]) == as.numeric(name))
+                if (length(idx) < 1) {
+                        mapped <- c(mapped, NA)
+                } else {
+                        mapped <- c(mapped, hugo2entrez[idx, 1])
+                }
+        } 
+        return (mapped)
+}
+map.hugo <- function(hugo.ids) {
+        mapped <- c()
+        for (name in hugo.ids) {
+                idx <- which(hugo2entrez[,1] == name)
+                if (length(idx) != 1) {
+			# don't map to Entrez if it fails: just keep the HUGO id
+                        mapped <- c(mapped, name)
+                } else {
+                        mapped <- c(mapped, as.numeric(hugo2entrez[idx, 2]))
+                }
+        } 
+        return (mapped)
+}
+
+
+proportions <- function(data, samples.POS, samples.NEG, FDR=0.05, correct=T) {
+
+
+	samples.POS <- intersect(colnames(data), samples.POS)
+	samples.NEG <- intersect(colnames(data), samples.NEG)
+
+	if (length(samples.POS)==0) { print ("Error, no positive class samples overlapping with gistic data!"); q(); }
+	if (length(samples.NEG)==0) { print ("Error, no negative class samples overlapping with gistic data!"); q(); }
+
+	# compute p-values using Fisher's exact test for differences in the proportions of 
+	# high-level amp or deletion events. Get genomic locations for events.
+	pvals <- sort(apply(data, 1, function(x) {
+
+		eventsCount.A <- length(which(x[samples.POS] > 0))
+	 	sampleSize.A <- length(samples.POS)
+		eventsCount.B <- length(which(x[samples.NEG] > 0))
+	 	sampleSize.B <- length(samples.NEG)
+		
+		test.res <- fisher.test( matrix(c(eventsCount.A, sampleSize.A, eventsCount.B, sampleSize.B), 
+			ncol=2), alternative='greater')
+		test.res$p.value
+	}))
+	sig.pvals <- NULL
+	if (correct) {
+		sig.pvals <- pvals[which(p.adjust(pvals, method='BY') < FDR)]
+	} else {
+		sig.pvals <- pvals[which(pvals < 0.05)]
+	}
+
+	# return gene names
+	return (as.character(map.entrez(names(sig.pvals))))
+}
 
 chasmResult <- setClass("chasmResult", slots=
 		c(data.by.sample="data.frame", 
