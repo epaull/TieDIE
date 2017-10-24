@@ -21,3 +21,9 @@ ucec/tiedie:
 		--output ucec/TieDIE \
 		--skip_nullModel
 
+ucec/n1_network/n1_network.txt:
+	python ../../bin/n1_pchip \
+		ucec/n1.patient.input \
+		ucec/downstream.input \
+		ucec/TieDIE/TieDIE.sif \
+		--output ucec/n1_network
