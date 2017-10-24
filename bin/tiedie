@@ -28,7 +28,7 @@
 ###		Information and warnings are logged to standard error
 
 
-import os, sys
+import os, sys, dill
 from collections import defaultdict
 from optparse import OptionParser
 parser = OptionParser()
@@ -53,6 +53,7 @@ parser.add_option("-o","--output",dest="output",action="store",default="TieDIE",
 parser.add_option("-s","--size",dest="size",action="store",default=1.0)
 parser.add_option("-c","--consider",dest="consider_top",action="store",default=3)
 parser.add_option("--concensus",dest="concensus",action="store_false",default=True)
+parser.add_option("--skip_nullModel",dest="skip_null",action="store_true",default=False)
 
 # data specific for patient-specific networks here
 parser.add_option("--d_expr",dest="d_expr",action="store",default=None,
@@ -175,7 +176,10 @@ else:
 	if opts.kernel is not None:
 		sys.stderr.write("Loading Heat Diffusion Kernel..\n")
 		# load a heat diffusion kernel to perform diffusion
-		diffuser = Kernel(opts.kernel)
+		if opts.kernel.endswith('.obj'):
+			diffuser = dill.load(open(opts.kernel, 'rb'))
+		else:
+			diffuser = Kernel(opts.kernel)
 	else:
 		sys.stderr.write("Using SCIPY to compute the matrix exponential, t=0.1...\n")
 		# No kernel supplied: use SCIPY to generate a kernel on the fly, and then use it
@@ -212,20 +216,21 @@ if opts.d_expr:
 	diffused_heats["tfs"] = diffuser.diffuse(tfs_heats)
 
 # compute all pairwise distances, validate the input sets first
-print "Computing pairwise p-values between sets"
-print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
-for input1, input2 in combinations(input_heats, 2):
+if not opts.skip_null:
+	print "Computing pairwise p-values between sets"
+	print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
+	for input1, input2 in combinations(input_heats, 2):
 
-	# print kl divergence
-	real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1],
-            diffused_heats[input2])
-	#print "\t".join([input1, input2, str(real_kldiv)])
-	output_file = output_folder+"/"+input1.replace('/', '.')+":"+input2.replace('/','.')+".dist.txt"
-	empirical_p, fitted_p = getPVAL(input_heats[input1],
+		# print kl divergence
+		real_kldiv = ProbDistance.getSymmetricMeasure(diffused_heats[input1],
+            	diffused_heats[input2])
+		#print "\t".join([input1, input2, str(real_kldiv)])
+		output_file = output_folder+"/"+input1.replace('/', '.')+":"+input2.replace('/','.')+".dist.txt"
+		empirical_p, fitted_p = getPVAL(input_heats[input1],
             input_heats[input2], network, diffuser, output_file)
-	print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
+		print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
 
-print "done"				
+	print "done"				
 
 # do a full TieDIE run: save heat values
 # write the cytoscape output file

@@ -87,7 +87,7 @@ def getMaxHeats(consider_top, diffused):
 
 	return max_gene_values
 
-def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
+def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts, verbose=False):
 	"""
 		Generate a spanning subnetwork from the supplied inputs, diffused heats and 
 		size control cutoff
@@ -147,6 +147,10 @@ def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 	# USE LINKER GENES AND INPUT GENES
 	active_nodes = set(linkers)
 	active_nodes = active_nodes.union(input_genes)
+	if verbose:
+		sys.stderr.write("Active nodes:")
+		print (active_nodes)
+
 	ugraph = connectedSubnets(network, active_nodes)
 	if len(ugraph) == 0:
 		sys.stderr.write("Couldn't find any linking graph at this size setting!\n")

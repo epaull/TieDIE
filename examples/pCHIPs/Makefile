@@ -16,5 +16,8 @@ ucec/tiedie:
 		-k pathways/multinet.kernel.obj \
 		-n pathways/multinet.sif \
 		ucec/upstream.input \
-		ucec/downstream.input
+		ucec/downstream.input \
+		-s 0.5 \
+		--output ucec/TieDIE \
+		--skip_nullModel
 
