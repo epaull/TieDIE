@@ -5,7 +5,7 @@ input_network=$1
 time_param=$2
 output=$3
 cut -f 1,3 $input_network \
-    | order_keys.pl \
+    | `dirname $0`/order_keys.py \
     | sort -k 1,2 -t '	' -u \
     > /tmp/in.tab
 
