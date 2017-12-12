@@ -24,6 +24,7 @@
 
 import os, sys, re
 from optparse import OptionParser
+from random import sample
 import numpy as np
 parser = OptionParser()
 parser.add_option("--pagerank",dest="pagerank",action="store_true", default=False, help="Use Personalized PageRank to Diffuse")
@@ -41,7 +42,6 @@ from collections import defaultdict
 sys.stderr.write("Loading Scaffold Network..\n")
 scaffold = parseNet(args[2])
 scaffold_nodes = getNetworkNodes(scaffold)
-	
 
 if opts.pagerank:
 	diffuser = PPrDiffuser(scaffold)
@@ -76,6 +76,7 @@ diffused_heats = {'upstream': events_diffused, 'downstream': mrs_diffused }
 subnet_soln, subnet_soln_nodes, linker_heats, cutoff = \
         extractSubnetwork(scaffold, input_heats, diffused_heats, 1.0, {})
 
+n1_patient_network = subnet_soln
 output_folder = opts.output
 print ("Writing output network to ", output_folder)
 writeNAfile(output_folder+"/heats.NA", linker_heats, "LinkerHeats")
@@ -100,4 +101,44 @@ for mr in mrs:
 out.close()
 print "done"
 
+# randomly permute the upstream nodes, generate random networks as a background
 
+input_heats = {'upstream': input_heats_events, 'downstream': input_heats_mrs }
+diffused_heats = {'upstream': events_diffused, 'downstream': mrs_diffused }
+
+edge_counts = defaultdict(float)
+for i in range(0, 1000):
+
+	# sample random upstream/genomic nodes
+	rand_nodes = sample(scaffold_nodes, len(set(events).intersection(scaffold_nodes)))
+	ih = {}
+	for node in rand_nodes:
+		ih[node] = 1
+
+	# diffuse selected nodes, rerun tiedie
+	input_heats['upstream'] = normalizeHeats(ih)[0]
+	diffused_heats['upstream'] = diffuser.diffuse(input_heats_events)
+	subnet_soln, subnet_soln_nodes, linker_heats, cutoff = \
+        extractSubnetwork(scaffold, input_heats, diffused_heats, 1.0, {})
+
+	print ("Random subnet node count"+str(len(subnet_soln_nodes)))
+	for s in subnet_soln:
+		for (i, t) in subnet_soln[s]:
+			edge_counts[(s, i, t)] += 1.0/1000.0
+
+out = open(output_folder+"/n1_rand_counts.txt", 'w')
+for edge in edge_counts.keys():
+	out.write('\t'.join(edge)+'\t'+str(edge_counts[edge])+'\n')
+out.close()
+
+
+##
+## Remove frequently occuring edges from the real solution
+##
+out = open(output_folder+"/n1_minusNull.sif", 'w')
+for s in n1_patient_network:
+	for (i, t) in n1_patient_network[s]:
+		if edge_counts[(s,i,t)] > 0.25:
+			continue
+		out.write('\t'.join([s, i, t])+'\n')
+out.close()
