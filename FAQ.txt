@@ -1,0 +1,13 @@
+
+
+Q: What version of Python do I need to run TieDIE?
+
+A: TieDIE is tested on Python 2.7 and should run on all 2.X (7 and up). It should run on Python 3 versions with minor modification but hasn't been tested on that yet. 
+
+Q: What Python libraries need to be installed to run TieDIE? 
+
+A: Numpy and networkx are required, and scipy 0.12.0+ is required to generate your own kernel. (Not required if using Personalized PageRank instead of Heat Diffusion). 
+
+Q: TieDIE hangs indefinitely without producing any output, even on the small test examples. 
+
+A: This is a known issue with certain versions of the Scipy library. Please check your Python version and try re-installing the numpy and scipy libraries. 
