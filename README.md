@@ -11,6 +11,12 @@ Authors
 
 Evan O. Paull, Daniel Carlin and Joshua M. Stuart.
 
+Additional Contributors
+--------
+
+Srikanth Bezawada (TieDIE Cytoscape Plugin)
+Josh L. Espinoza (Quick kernel loading feature)
+
 
 Requirements
 --------
