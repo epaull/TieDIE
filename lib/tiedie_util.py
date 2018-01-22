@@ -1,5 +1,4 @@
-#!/usr/bin/env	python2.7
-
+from __future__ import print_function, unicode_literals, division
 import re, math, os, sys, operator, random
 import networkx as nx
 
@@ -7,11 +6,11 @@ def parseHeats(file, network_nodes=None):
 	"""
 	Parse input heats file in form:
 		<gene> <heat> <perturbation/activity sign (+/-)>
-		
+
 	Returns:
 		- Two hashes: one indexing by gene and storing the input heats, and one storing the input signs
 	"""
-	
+
 	heats = {}
 	signs = {}
 	fh = None
@@ -68,10 +67,10 @@ def edgelist2nodes(list):
 		nodes.add(target)
 
 	return nodes
-	
+
 def classifyInteraction(i):
 	"""
-	
+
 	Returns the edge activation type (-1,0,1), and the textual description
 
 	>>> classifyInteraction("component>")
@@ -94,7 +93,7 @@ def classifyInteraction(i):
 	inactivatingRE = re.compile("^-?(\S)\|$")
 	rewiredAC = re.compile("^-?REWIRED>$")
 	rewiredIN = re.compile("^-?REWIRED\|$")
-	
+
 	if componentRE.match(i):
 		return (0, "component")
 	elif activatingRE.match(i):
@@ -139,16 +138,16 @@ def getOutDegrees(network):
 	"""
 	outDegrees = {}
 	for s in network:
-		outDegrees[s] = len(network[s]) 
+		outDegrees[s] = len(network[s])
 		for (i, t) in network[s]:
 			if t not in outDegrees:
 				outDegrees[t] = 0
 
 	return outDegrees
-	
+
 def edges2degrees(edges):
 	"""
-	Takes simple edges in (source, target) format, and returns a hash of the 
+	Takes simple edges in (source, target) format, and returns a hash of the
 	total degree of each node.
 
 	>>> edges2degrees([("A","B"),("B","C")])
@@ -165,7 +164,7 @@ def edges2degrees(edges):
 		nodes[s][t] = 1
 		nodes[t][s] = 1
 
-	sizes = {}	
+	sizes = {}
 	for n in nodes:
 		sizes[n] = len(nodes[n])
 
@@ -182,14 +181,14 @@ def isRewired(i):
 
 	return False
 
-# do a depth-first search by following directional links 
+# do a depth-first search by following directional links
 # until we hit another source
-# find edges 
+# find edges
 def searchDFS(source, action, discovered, linker_nodes, target_set, net, gene_states, transcriptional_signs, depth, truePaths, falsePaths, falsePathStatus):
 	'''
-	Perform a depth-first search by following directional links 
-	until we hit another source. Validate link interactions along the way. 
-	Recursive calls. 
+	Perform a depth-first search by following directional links
+	until we hit another source. Validate link interactions along the way.
+	Recursive calls.
 
 	Input:
 		source: source node by name
@@ -232,16 +231,16 @@ def searchDFS(source, action, discovered, linker_nodes, target_set, net, gene_st
 		elif i_type == 2:
 			action_this_target = -action
 
-		# for transcriptional states: the expression activity is what we want to measure 
+		# for transcriptional states: the expression activity is what we want to measure
 		this_state = None
-		if target in gene_states:	
+		if target in gene_states:
 			this_state = gene_states[target]
 		#if post_t_type == "t":
 		# this depends on weather we monitor the activities of downstream genes, or just the transcription
 		# leave commented out for the former
 		#	if target not in transcriptional_signs:
 		#		continue
-		#	this_state = transcriptional_signs[target] 
+		#	this_state = transcriptional_signs[target]
 
 		# we hit a target that has a matching action/signal from the original source
 		if (target in gene_states) and (target in target_set) \
@@ -260,14 +259,14 @@ def searchDFS(source, action, discovered, linker_nodes, target_set, net, gene_st
 			else:
 				truePaths.append(target)
 
-		# search the target, but with any previous linkers	
+		# search the target, but with any previous linkers
 		else:
 			new_linkers = set()
 			new_linkers.add((source, interaction, target))
-			new_linkers = new_linkers.union(linker_nodes)	
+			new_linkers = new_linkers.union(linker_nodes)
 
 		# if we come from a transcriptionally activating link, this cuts the cycle. Gene must
-		# be upregulated 
+		# be upregulated
 		if post_t_type == "t":
 			continue
 
@@ -285,7 +284,7 @@ def classifyState(up_signs, down_signs):
 
 	c = {}
 	t_states = {}
-	# The order matters here: 
+	# The order matters here:
 	for gene in down_signs:
 		if down_signs[gene] == "+":
 			c[gene] = 1
@@ -294,7 +293,7 @@ def classifyState(up_signs, down_signs):
 			c[gene] = -1
 			t_states[gene] = -1
 
-	# The order matters here: 
+	# The order matters here:
 	for gene in up_signs:
 		if up_signs[gene] == "+":
 			c[gene] = 1
@@ -302,12 +301,12 @@ def classifyState(up_signs, down_signs):
 			c[gene] = -1
 
 	return (c, t_states)
-	
+
 # build an index, source to targets fro the directed graph
 def parseNet(network):
 	"""
-	Build a directed network from a .sif file. 
-	
+	Build a directed network from a .sif file.
+
 	Inputs:
 		A network in .sif format, tab-separated (<source> <interaction> <target>)
 
@@ -315,7 +314,7 @@ def parseNet(network):
 		A network in hash key format, i.e. convert two lines of a file:
 			<source>	<interaction1>	<target1>
 			<source>	<interaction2>	<target2>
-		To:	
+		To:
 			{'source': set( (interaction, target1), (interaction, target2) )
 	"""
 	net = {}
@@ -336,7 +335,7 @@ def parseNet(network):
 def findLinkerCutoff(source_set, target_set, up_heat_diffused, down_heat_diffused, size):
 	"""
 	For a given set of source, target, and diffused heats for each, find a threshold value
-	that yeilds a "linker" set of the given size (relative to the input set size). 
+	that yeilds a "linker" set of the given size (relative to the input set size).
 
 	Returns:
 		The cutoff/threshold to use, and the Relevance Score at that cutoff
@@ -351,10 +350,10 @@ def findLinkerCutoff(source_set, target_set, up_heat_diffused, down_heat_diffuse
 	"""
 	if down_heat_diffused is None:
 		# diffusing from a single source (i.e. not TieDIE but the HotNet algorithm, for comparison)
-		cutoff, score = findLinkerCutoffSingle(source_set, up_heat_diffused, size)		
+		cutoff, score = findLinkerCutoffSingle(source_set, up_heat_diffused, size)
 	else:
 		try:
-			cutoff, score = findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_diffused, size)		
+			cutoff, score = findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_diffused, size)
 		except:
 			return (0,0)
 
@@ -387,7 +386,7 @@ def findLinkerCutoffSingle(source_set, up_heat_diffused, size):
 			break
 		i += 1
 
-	return (cutoff, 0)	
+	return (cutoff, 0)
 
 def findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_diffused, size):
 
@@ -420,15 +419,15 @@ def findLinkerCutoffMulti(source_set, target_set, up_heat_diffused, down_heat_di
 
 def scoreLinkers(heats1, sorted1, heats2, sorted2, sourceSet, targetSet, cutoff, size):
 	"""
-		Get linkers greater than this cutoff according to reverse-sorted list. 
-		
+		Get linkers greater than this cutoff according to reverse-sorted list.
+
 		Inputs:
 			source and target sets, diffused heats for each and the heat-sorted
 			order for each.
 			The linker cutoff chosen.
-	""" 
+	"""
 
-	# find the genes in the first set that fall above this cutoff 
+	# find the genes in the first set that fall above this cutoff
 	filtered_h1 = {}
 	for l in sorted1:
 		s = heats1[l]
@@ -445,7 +444,7 @@ def scoreLinkers(heats1, sorted1, heats2, sorted2, sourceSet, targetSet, cutoff,
 			break
 
 		filtered_h2[l] = s
-	
+
 	# make sets of both 'relevance neighborhoods' R_s and R_t
 	f1 = set(filtered_h1)
 	f2 = set(filtered_h2)
@@ -454,33 +453,33 @@ def scoreLinkers(heats1, sorted1, heats2, sorted2, sourceSet, targetSet, cutoff,
 	union = f1.union(f2)
 	intersection = f1.intersection(f2)
 	# connecting genes are linkers not in the source or target.
-	# intutively, this is the heat that flows to the same  
+	# intutively, this is the heat that flows to the same
 	connecting = intersection.difference(sourceSet).difference(targetSet)
-	# the score is the number of connecting 'linker' genes over the size of the entire 
+	# the score is the number of connecting 'linker' genes over the size of the entire
 	# relevance neighborhoods
 	score = len(connecting)/float(len(union))
 	# the relative size of the connecting genes, compared to the input set sizes
 	size_frac = (len(connecting)/float(len(sourceSet.union(targetSet))))/float(size)
-	
+
 	return (score, size_frac)
 
 def scoreLinkersMulti(input_heats, min_heats, cutoff, size):
 	"""
-		Get linkers greater than this cutoff according to reverse-sorted list. 
-		This version takes an arbitrary number of inputs.	
-		
+		Get linkers greater than this cutoff according to reverse-sorted list.
+		This version takes an arbitrary number of inputs.
+
 		Inputs:
-			input_heats: a dictionary of an arbitrary number of input heat sets. 
+			input_heats: a dictionary of an arbitrary number of input heat sets.
 			min_heats: pre-processed 'linker' heat values according to any particular
-			linker function. 
-	""" 
-	
+			linker function.
+	"""
+
 	# get the set of all input genes
 	all_inputs = set()
 	for name in input_heats:
 		all_inputs = all_inputs.union(input_heats[name].keys())
-	
-	# generate the set of linker genes according to the supplied heat cutoff. 
+
+	# generate the set of linker genes according to the supplied heat cutoff.
 	all_linkers = set()
 	for (gene, heat) in sorted(min_heats.iteritems(), key=operator.itemgetter(1), reverse=True):
 		if heat < cutoff:
@@ -494,7 +493,7 @@ def scoreLinkersMulti(input_heats, min_heats, cutoff, size):
 	score = len(connecting)/float(len(all_linkers))
 	# the relative size of the connecting genes, compared to the input set sizes
 	size_frac = (len(connecting)/float(len(all_inputs)))/float(size)
-	
+
 	return (score, size_frac)
 
 def getMinHeats(diffused):
@@ -506,7 +505,7 @@ def getMinHeats(diffused):
 
 	Returns:
 		A minimum-heat vector over all genes
-			
+
 	"""
 
 	mins = {}
@@ -530,7 +529,7 @@ def getMaxHeats(diffused):
 
 	Returns:
 		A max-heat vector over all genes
-			
+
 	"""
 	max = {}
 	for file in diffused:
@@ -546,12 +545,12 @@ def getMaxHeats(diffused):
 def filterLinkers(up_heats_diffused, down_heats_diffused, cutoff):
 	"""
 	Use the min(diffused1, diffused2) function to return a list of genes
-	that fall above that cutoff. 
+	that fall above that cutoff.
 	Input:
 		diffused heats for each set, and the numeric cutoff value
 
 	Returns:
-		a list of genes above the cutoff, a hash of minimum heat values		
+		a list of genes above the cutoff, a hash of minimum heat values
 	"""
 	linkers = {}
 	filtered = []
@@ -574,47 +573,47 @@ def mapUGraphToNetwork(edge_list, network):
 	"""
 		Map undirected edges to the network to form a subnetwork
 		in the hash-key directed network format
-	
+
 		Input:
 			edge_list: edges in (s,t) format
-			network: network in {source:set( (int, target), ... )	
+			network: network in {source:set( (int, target), ... )
 
 		Returns:
 			Subnetwork in the data structure format of network input
 	"""
 
 	subnetwork = {}
-	
+
 	for (s,t) in edge_list:
 		# find this equivalent edge(s) in the directed network
-		# edges: 
+		# edges:
 		if s in network:
 			for (i, nt) in network[s]:
 				if nt == t:
 					if s not in subnetwork:
 						subnetwork[s] = set()
-					subnetwork[s].add((i,t))	
+					subnetwork[s].add((i,t))
 
 		if t in network:
 			for (i, nt) in network[t]:
 				if nt == s:
 					if t not in subnetwork:
 						subnetwork[t] = set()
-					subnetwork[t].add((i,s))	
-	
-	return subnetwork	
+					subnetwork[t].add((i,s))
+
+	return subnetwork
 
 
 def connectedSubnets(network, subnet_nodes):
 
 	"""
 
-	Input: 
+	Input:
 		A network in hash[source] = set( (interaction, target), ... ) Form
 		A set of nodes to use for edge selection
 
-	Returns: 
-		An edgelist set (source, target) 
+	Returns:
+		An edgelist set (source, target)
 		where both nodes are in the subset of interest
 
 	>>> network = {}
@@ -647,25 +646,25 @@ def connectedSubnets(network, subnet_nodes):
 	# use networkx to find the largest connected sub graph
 	G = nx.Graph()
 	G.add_edges_from(list(ugraph))
-	# get the biggest connected component, add edges between all 
+	# get the biggest connected component, add edges between all
 	validated_edges = set()
 	for component in nx.connected_components(G):
 		validated_nodes = component
 		for (s,t) in edgelist:
 			# validate both nodes
 				if s in validated_nodes and t in validated_nodes:
-					validated_edges.add((s,t))	
+					validated_edges.add((s,t))
 
 		break
 
-	return validated_edges	
+	return validated_edges
 
 def connectedNodes(network, hot_nodes):
 	"""
 	Call connectedSubnets to restrict to connected nodes, and return just the nodes
 	filtered in this step
 	"""
-	
+
 	nodes = set()
 	for (s, t) in connectedSubnets(network, hot_nodes):
 		nodes.add(s)
@@ -677,18 +676,18 @@ def runPCST(up_heats, down_heats, linker_genes, network_file):
 		Convert input to format used for PCST program.
 		Requires BioNet R package to be installed
 	"""
-	
-	# convert up/down heats to p-values	
+
+	# convert up/down heats to p-values
 	# find the maximum heat for any value
 	# the BioNet package requires p-values for an input, so we have to 'fake' these
-	# here, converting them from heats. 
+	# here, converting them from heats.
 	s_up = sorted([v for k, v in up_heats.iteritems()], reverse=True)
 	s_down = sorted([v for k, v in down_heats.iteritems()], reverse=True)
 
-	if len(up_heats) > 0:	
+	if len(up_heats) > 0:
 		max_heat = s_up[0]
 		min_heat = s_up[-1]
-	
+
 		if len(s_down) > 0:
 			if s_down[0] > max_heat:
 				max_heat = s_down[0]
@@ -715,28 +714,28 @@ def runPCST(up_heats, down_heats, linker_genes, network_file):
 		pval = math.exp( normalized_heat*math.log(float("1e-10"))/normalized_max )
 		scores[node] = str(pval)
 	for node in linker_genes:
-		scores[node] = "1e-10"	
+		scores[node] = "1e-10"
 
 	pid = str(os.geteuid())
 
 	tmp_act = open("/tmp/tmp_act_"+pid+".tab",'w')
 	for node in scores:
 		tmp_act.write(node+"\t"+scores[node]+"\n")
-	tmp_act.close()	
+	tmp_act.close()
 
 	# PCST is implemented in the BioNet package, and requires R to run. Python will call this script and collect the output
 	os.system(sys.path[0]+"/span.R --activities /tmp/tmp_act_"+pid+".tab --network "+network_file+" > /tmp/pcst_"+pid+".tab 2>/dev/null")
 
 	pcst_network = []
 	pcst_line = re.compile("\[\d+\]\s+(\S+)\s+\-\-\s+(\S+)\s+")
-	pcst = open("/tmp/pcst_"+pid+".tab",'r')	
+	pcst = open("/tmp/pcst_"+pid+".tab",'r')
 	for line in pcst:
-		m = pcst_line.match(line)	
+		m = pcst_line.match(line)
 		if m:
-			pcst_network.append((m.group(1),m.group(2)))	
+			pcst_network.append((m.group(1),m.group(2)))
 	pcst.close()
 
-	return pcst_network	
+	return pcst_network
 
 
 def writeNetwork(net, out_file):
@@ -756,7 +755,7 @@ def randomSubnet(network, num_sources):
 	sub = {}
 	for source in random.sample(network, num_sources):
 		sub[source] = network[source]
-			
+
 	return sub
 
 def writeEL(el, so, down_set, out_file):
@@ -779,12 +778,12 @@ def writeEL(el, so, down_set, out_file):
 
 def writeNAfile(file_name, hash_values, attr_name):
 	"""
-	Write out a node-attribute file. Include the header 
-	attr_name, and use the supplied hash values. 
+	Write out a node-attribute file. Include the header
+	attr_name, and use the supplied hash values.
 	"""
 	fh = None
 	try:
-		fh = open(file_name, 'w')	
+		fh = open(file_name, 'w')
 	except:
 		raise Exception("Error: couldn't open output NA file for writing:"+file_name)
 
@@ -795,7 +794,7 @@ def writeNAfile(file_name, hash_values, attr_name):
 			float(hash_values[key])
 		except:
 			raise Exception("Error: bad input value")
-			
+
 		fh.write(key+" = "+str(hash_values[key])+"\n")
 
 	fh.close()
@@ -806,14 +805,14 @@ def sampleHeats(heats):
 	keys = random.sample(heats, ss)
 	subset = {}
 	for k in keys:
-		subset[k] = heats[k] 
+		subset[k] = heats[k]
 
 	return subset
 
 def getNetworkNodes(network):
 	"""
 	Take a network in hash-key format and return a set containing the
-	nodes in it. 
+	nodes in it.
 	"""
 	nodes = set()
 	for s in network:

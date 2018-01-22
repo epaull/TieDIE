@@ -1,5 +1,4 @@
-#!/usr/bin/env  python2.7
-
+from __future__ import print_function, unicode_literals, division
 from numpy import genfromtxt, dot
 import numpy as np
 import sys
@@ -8,18 +7,18 @@ import math
 class Kernel:
 
     def __init__(self, kernel_files):
-        """ 
+        """
             Input:
 
                 kernel_file - a tab-delimited matrix file with both a header
-                and first-row labels, in the same order. 
+                and first-row labels, in the same order.
 
             Returns:
 
-                Kernel object.                 
+                Kernel object.
         """
 
-        # Multiple kernels are supported. Linearity of the diffusion kernel allows 
+        # Multiple kernels are supported. Linearity of the diffusion kernel allows
         # this feature.
 
         # store kernel object
@@ -57,11 +56,11 @@ class Kernel:
 
     def kernelMultiplyOne(self, kernel, vector):
         """
-            Multiply the specified kernel by the supplied input heat vector. 
+            Multiply the specified kernel by the supplied input heat vector.
 
             Input:
-                vector: A hash mapping gene labels to floating point values 
-                kernel: a single index for a specific kernel 
+                vector: A hash mapping gene labels to floating point values
+                kernel: a single index for a specific kernel
 
             Returns:
                 A hash of diffused heats, indexed by the same names as the
@@ -109,7 +108,7 @@ class Kernel:
     def diffuse(self, vector, reverse=False):
         """
         Diffuse input heats over the set of kernels, add to this object
-        
+
         Input:
             {'gene1': float(heat1)
              'gene2' : float(heat2)
@@ -119,7 +118,7 @@ class Kernel:
         Returns:
             Diffused heat vector
         """
-        # diffuse separately on each kernel (if more than one), and store. 
+        # diffuse separately on each kernel (if more than one), and store.
         return_vectors = []
         for kernel in self.kernels:
             # run diffusion on each constituent kernel
@@ -127,5 +126,3 @@ class Kernel:
             return_vectors.append(diffused_vector)
 
         return self.addVectors(return_vectors)
-
-

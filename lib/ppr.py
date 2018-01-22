@@ -1,5 +1,4 @@
-#!/usr/bin/env  python2.7
-
+from __future__ import print_function, unicode_literals, division
 import networkx as nx
 
 class PPrDiffuser:
@@ -7,9 +6,9 @@ class PPrDiffuser:
 	def __init__(self, network):
 		'''
 			PPrDiffuser: object to perform the Personalized PageRank Algorithm
-			This method creates the diffuser object from an networkx DiGraph() object, 
+			This method creates the diffuser object from an networkx DiGraph() object,
 			which can then be used to diffuse vectors over this
-			
+
 			Input:
 				- network : a network hash object
 		'''
@@ -28,7 +27,7 @@ class PPrDiffuser:
 		'''
 			Personal_Page_Rank: Get the personal pagerank of the supplied input vector
 
-			Input: 
+			Input:
 				- p_vector: A hash-map of input values for a selection (or all) nodes
 				(if supplied nodes aren't in the graph, they will be ignored)
 
@@ -40,7 +39,7 @@ class PPrDiffuser:
 		# and this will be equivalent to standard page rank
 		if p_vector:
 			input_pvec = {}
-			# doesn't seem to be necessary for a non-zero epsilon now, but 
+			# doesn't seem to be necessary for a non-zero epsilon now, but
 			# leave this as a place holder
 			epsilon = 0.0
 			for node in self.G.nodes(data=False):
@@ -49,7 +48,7 @@ class PPrDiffuser:
 				else:
 					input_pvec[node] = epsilon
 
-		if reverse:	
+		if reverse:
 			return nx.pagerank_numpy(self.G_reversed, 0.85, input_pvec)
 		else:
 			return nx.pagerank_numpy(self.G, 0.85, input_pvec)
@@ -58,7 +57,7 @@ class PPrDiffuser:
 		'''
 			Diffuse: perform generalized diffusion from the supplied input vector
 
-			Input: 
+			Input:
 				- p_vector: A hash-map of input values for a selection (or all) nodes
 				(if supplied nodes aren't in the graph, they will be ignored)
 

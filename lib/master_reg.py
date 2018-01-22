@@ -1,4 +1,4 @@
-
+from __future__ import print_function, unicode_literals, division
 from tiedie_util import *
 import operator
 import math
@@ -7,9 +7,9 @@ from scipy import stats
 import numpy as np
 from distributions import Dist
 
-class ActivityScores: 
+class ActivityScores:
 	"""
-		Uses the supplied pathway to find 
+		Uses the supplied pathway to find
 
 	"""
 
@@ -18,20 +18,20 @@ class ActivityScores:
 			Input:
 				network: net[source] = [(i, t)]
 				scores: hash map of differential gene expression (think D-statistics from SAM)
-				min_hub: minimum number of genes regulated transcriptionally required 
+				min_hub: minimum number of genes regulated transcriptionally required
 				to be considered as a potential 'master regulator'
 				p: the power to raise each element to when computing the running sum
 		"""
 
 		# build a list of candidate regulators
-		self.candidates = {}	
+		self.candidates = {}
 
 		for source in network:
 
 			positive_regulon = set()
 			negative_regulon = set()
 			for (i, t) in network[source]:
-				type, mode = classifyInteraction(i)	
+				type, mode = classifyInteraction(i)
 				# only consider transcriptional regulation
 				if mode != 't':
 					continue
@@ -74,8 +74,8 @@ class ActivityScores:
 	def findRegulators(network, de_file, min_hub=10, nperms=1000):
 		"""
 		Input:
-			file with differential expression (or otherwise scored) values 
-		
+			file with differential expression (or otherwise scored) values
+
 		Returns:
 			A hash of master regulators, with signed, weighted scores normalized
 			so that absolute values sum to 1.
@@ -86,7 +86,7 @@ class ActivityScores:
 		result = mrObj.scoreCandidates(nperms)
 		tfs_heats = {}
 		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
-			print result
+			print(result)
 			# filter on p-value
 			if result[1] > 0.05:
 				continue
@@ -94,14 +94,14 @@ class ActivityScores:
 
 		if len(tfs_heats) == 0:
 			raise Exception("No Significant Regulators Active!")
-	
+
 		t_total = 0
 		for (g, h) in tfs_heats.items():
 			t_total += abs(float(h))
 
-		# normalize abs values to sum to 1	
+		# normalize abs values to sum to 1
 		norm_factor = 1000.0/t_total
-	
+
 		for (g, h) in tfs_heats.items():
 			tfs_heats[g] = h*norm_factor
 
@@ -121,7 +121,7 @@ class ActivityScores:
 					break
 			empirical_pval = (count+1)/(len(background)+1)
 		else:
-			# ascending order	
+			# ascending order
 			for val in sorted(background, reverse=False):
 				if val <= real:
 					count += 1
@@ -132,8 +132,8 @@ class ActivityScores:
 		return empirical_pval
 
 	def scoreCandidates(self, threshold=0.05, nperms=1000):
-	
-		scores = {}	
+
+		scores = {}
 		for c in self.candidates:
 			pos, neg = self.candidates[c]
 			score = self.scoreReg(pos, neg)
@@ -143,10 +143,10 @@ class ActivityScores:
 			if pval < threshold:
 				scores[c] = (score, pval)
 
-		return scores	
+		return scores
 
 	def generateBackground(self, candidate, nperms):
-	
+
 		pos, neg = self.candidates[candidate]
 		# sample of this set size
 		# of random genes to generate each permutation
@@ -155,14 +155,14 @@ class ActivityScores:
 			sampled_pos = set(random.sample(self.gene_list, len(pos)))
 			sampled_neg = set(random.sample(self.gene_list, len(neg)))
 			score = self.scoreReg(sampled_pos, sampled_neg)
-			background_scores.append(score)	
+			background_scores.append(score)
 
-		return background_scores	
+		return background_scores
 
 	def generateRankings(self, scores):
 
 		"""
-			scores: scores of differential gene expression. These canonically are 
+			scores: scores of differential gene expression. These canonically are
 			d-statistic values output from Significance of Microarrays (SAM, Tishirani 2003).
 			Input as a hash-map.
 			Store the results in the internal index
@@ -171,7 +171,7 @@ class ActivityScores:
 		# invert the list, and then merge the postive and negative lists
 		# descending order
 
-		# save this data	
+		# save this data
 		self.gene_list = []
 		self.scores = scores
 
@@ -212,7 +212,7 @@ class ActivityScores:
 				R_c_SCORES.append( forward_scores[indexF] )
 				indexF += 1
 				continue
-					
+
 			f_score = forward_scores[indexF]
 			# inverse score...
 			r_score = -reverse_scores[indexR]
@@ -227,8 +227,8 @@ class ActivityScores:
 				indexR += 1
 
 		self.scores = R_c_SCORES
-		self.list = R_c	
-		
+		self.list = R_c
+
 
 
 	def scoreCHISQ(self, pos_query_set, neg_query_set):
@@ -251,18 +251,18 @@ class ActivityScores:
 		up_DISAGREE = float(len(pos_query_set.intersection(self.neg_de_set)))
 		observed = np.array([up_AGREE, up_DISAGREE])
 		UP_chisq, UP_pval = stats.chisquare(observed, expected)
-		
+
 		down_AGREE = float(len(neg_query_set.intersection(self.neg_de_set)))
 		down_DISAGREE = float(len(neg_query_set.intersection(self.pos_de_set)))
 		observed = np.array([down_DISAGREE, down_AGREE])
 		DOWN_chisq, DOWN_pval = stats.chisquare(observed, expected)
 
 		combined_p = UP_pval*DOWN_pval
-		return combined_p	
+		return combined_p
 
 	def scoreReg(self, pos_query_set, neg_query_set):
 		"""
-			
+
 		"""
 
 		# from Lim et al., 2009 PSB
@@ -274,7 +274,7 @@ class ActivityScores:
 		for i in range(0, len(self.list)):
 			gene, set = self.list[i]
 			if (set == '-' and gene in neg_query_set) or (set == '+' and gene in pos_query_set):
-				# compute the sum of abs values of all scores in this set to get a normalization 
+				# compute the sum of abs values of all scores in this set to get a normalization
 				# constant at the end
 				sum_norm_const += abs(self.scores[i])
 
@@ -288,12 +288,11 @@ class ActivityScores:
 				running_sum += self.scores[i]/sum_norm_const
 			else:
 				# score decreases in this case
-				running_sum -= 1/rs_const	
+				running_sum -= 1/rs_const
 
 			if running_sum > max_rs:
-				max_rs = running_sum	
+				max_rs = running_sum
 			elif running_sum < min_rs:
-				min_rs = running_sum	
+				min_rs = running_sum
 
 		return max_rs+min_rs
-
