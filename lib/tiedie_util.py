@@ -1,4 +1,6 @@
-from __future__ import print_function, unicode_literals, division
+from __future__ import print_function
+from __future__ import division
+#from __future__ import unicode_literals
 import re, math, os, sys, operator, random
 import networkx as nx
 

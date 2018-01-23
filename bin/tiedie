@@ -27,7 +27,8 @@
 ###		Creates a directory in the current working directory, and writes all output to that
 ###		Information and warnings are logged to standard error
 
-from __future__ import print_function, unicode_literals, division
+from __future__ import print_function
+from __future__ import division
 import os, sys
 from collections import defaultdict
 from optparse import OptionParser
