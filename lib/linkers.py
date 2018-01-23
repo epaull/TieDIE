@@ -1,5 +1,4 @@
-#!/usr/bin/env	python2.7
-
+from __future__ import print_function, unicode_literals, division
 from tiedie_util import *
 
 def min(vals):
@@ -25,9 +24,9 @@ def getProduct(diffused):
 		for v in gene_scores[gene]:
 			product *= v
 		gene_products[gene] = product
-	
+
 	return gene_products
- 
+
 
 def getMinHeats(consider_top, diffused):
 	"""
@@ -38,7 +37,7 @@ def getMinHeats(consider_top, diffused):
 
 	Returns:
 		A minimum-heat vector over all genes
-			
+
 	"""
 
 	gene_scores = {}
@@ -49,8 +48,8 @@ def getMinHeats(consider_top, diffused):
 				gene_scores[gene] = []
 			gene_scores[gene].append(heat)
 
-  
-	min_gene_values = {} 
+
+	min_gene_values = {}
 	for gene in gene_scores:
 		values = gene_scores[gene]
 		# get the top X
@@ -67,7 +66,7 @@ def getMaxHeats(consider_top, diffused):
 
 	Returns:
 		A minimum-heat vector over all genes
-			
+
 	"""
 
 	gene_scores = {}
@@ -78,8 +77,8 @@ def getMaxHeats(consider_top, diffused):
 				gene_scores[gene] = []
 			gene_scores[gene].append(heat)
 
-  
-	max_gene_values = {} 
+
+	max_gene_values = {}
 	for gene in gene_scores:
 		values = gene_scores[gene]
 		# get the top X
@@ -89,7 +88,7 @@ def getMaxHeats(consider_top, diffused):
 
 def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 	"""
-		Generate a spanning subnetwork from the supplied inputs, diffused heats and 
+		Generate a spanning subnetwork from the supplied inputs, diffused heats and
 		size control cutoff
 
 		Input:
@@ -151,7 +150,7 @@ def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 	if len(ugraph) == 0:
 		sys.stderr.write("Couldn't find any linking graph at this size setting!\n")
 	subnet_soln = mapUGraphToNetwork(ugraph, network)
-	
+
 	subnet_soln_nodes = set()
 	for s in subnet_soln:
 		subnet_soln_nodes.add(s)
@@ -162,21 +161,21 @@ def extractSubnetwork(network, input_heats, diffused_heats, size_control, opts):
 
 def linkerScore(input_heats, min_heats, cutoff, size):
 	"""
-		Get linkers greater than this cutoff according to reverse-sorted list. 
-		This version takes an arbitrary number of inputs.	
-		
+		Get linkers greater than this cutoff according to reverse-sorted list.
+		This version takes an arbitrary number of inputs.
+
 		Inputs:
-			input_heats: a dictionary of an arbitrary number of input heat sets. 
+			input_heats: a dictionary of an arbitrary number of input heat sets.
 			min_heats: pre-processed 'linker' heat values according to any particular
-			linker function. 
-	""" 
-	
+			linker function.
+	"""
+
 	# get the set of all input genes
 	all_inputs = set()
 	for name in input_heats:
 		all_inputs = all_inputs.union(input_heats[name].keys())
-	
-	# generate the set of linker genes according to the supplied heat cutoff. 
+
+	# generate the set of linker genes according to the supplied heat cutoff.
 	all_linkers = set()
 	for (gene, heat) in sorted(min_heats.iteritems(), key=operator.itemgetter(1), reverse=True):
 		if heat < cutoff:
@@ -190,6 +189,5 @@ def linkerScore(input_heats, min_heats, cutoff, size):
 	score = len(connecting)/float(len(all_linkers))
 	# the relative size of the connecting genes, compared to the input set sizes
 	size_frac = (len(connecting)/float(len(all_inputs)))/float(size)
-	
-	return (score, size_frac)
 
+	return (score, size_frac)

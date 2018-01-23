@@ -3,11 +3,11 @@
 ###
 ### TieDIE: Tied Diffusion for Network Discovery
 ###
-###	Version: 
+###	Version:
 ###
 ###		1.1
 ###
-###	Authors: 
+###	Authors:
 ###
 ###		Evan Paull (epaull@soe.ucsc.edu)
 ###
@@ -17,8 +17,8 @@
 ###		numpy 1.7+ (with pre-computed kernels)
 ###		scipy 0.12+ (for on-the-fly kernel generation)
 ###
-### Minimum Inputs: 
-###		
+### Minimum Inputs:
+###
 ###		- separate source/target input heat files: tab-separated, 3 columns each with <gene> <input heat> <sign (+/-)>
 ###		- a search pathway in .sif format (geneA <interaction> geneB)
 ###
@@ -27,7 +27,7 @@
 ###		Creates a directory in the current working directory, and writes all output to that
 ###		Information and warnings are logged to standard error
 
-
+from __future__ import print_function, unicode_literals, division
 import os, sys
 from collections import defaultdict
 from optparse import OptionParser
@@ -72,8 +72,9 @@ parser.add_option("--all_paths",dest="all_paths",action="store_true",default=Fal
 parser.add_option("--output_folder",dest="output_folder",action="store",default='TieDIE')
 (opts, args) = parser.parse_args()
 
-# local imports assume the directory structure from github . 
-sys.path.append(os.path.dirname(sys.argv[0])+'/../lib')
+# local imports assume the directory structure from github .
+script_directory = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(script_directory.replace("bin","lib"))
 from kernel import Kernel
 from ppr import PPrDiffuser
 from permute import NetBalancedPermuter
@@ -101,18 +102,18 @@ elif opts.up_heats is None:
 if opts.kernel is None:
 	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
 	from kernel_scipy import SciPYKernel
-	
+
 
 def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control, set_alpha):
 	"""
-		Generate a spanning subnetwork from the supplied inputs, diffused heats and 
+		Generate a spanning subnetwork from the supplied inputs, diffused heats and
 		size control cutoff
 
 		Input:
 			- upstream heats
 			- downstream heats
 			- diffused upstream heats
-			- diffused downstream heats	
+			- diffused downstream heats
 			- size control factor
 
 		Output:
@@ -149,7 +150,7 @@ def extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffus
 		return (None, None, None, None)
 	# map the undirected edge list back to the directed network, which includes edge types, and directionality
 	subnet_soln = mapUGraphToNetwork(ugraph, network)
-	
+
 	subnet_soln_nodes = set()
 	for s in subnet_soln:
 		subnet_soln_nodes.add(s)
@@ -162,14 +163,14 @@ def findConsistentPaths(up_signs, down_signs, searchNetwork, output_folder, outp
 
 	"""
 		Filter the heat-generated network by searching for all directed paths from each
-		source to each target gene. 
+		source to each target gene.
 
 		Input:
 			- up_signs: hash with up/down signs for each upstream node
 			- down_signs: hash with up/down signs for each downstream node
 			- searchNetwork: heat derived subnetwork to use as the basis for the depth-first search
 			- output_folder: write output networks under this directory
-			
+
 		Options:
 			- output: flag to write output to the specified folder
 
@@ -178,12 +179,12 @@ def findConsistentPaths(up_signs, down_signs, searchNetwork, output_folder, outp
 			- TP: true positive links (count)
 			- FP: false positive links, if supplied with 'dummy' edges for the precision/recall test
 			- validated: an edge list of validated edges
-			
+
 
 	"""
-	# States can be classified as either a gain or loss of function, or up/down regulated. 
+	# States can be classified as either a gain or loss of function, or up/down regulated.
 	# If a gene is in both source and target sets, the state of the source (perturbation) set
-	# takes precedence. 
+	# takes precedence.
 	gene_states, t_states = classifyState(up_signs, down_signs)
 	# store the set of validated edges here
 	validated = set()
@@ -195,16 +196,16 @@ def findConsistentPaths(up_signs, down_signs, searchNetwork, output_folder, outp
 	for source in up_signs:
 		action = gene_states[source]
 		falsePaths = []
-		truePaths = []	
+		truePaths = []
 		edges_this_source = set()
 		# perform a recursive DFS search for any of this target set, following directional links and stopping when a target is hit
-		# keep track of True/False paths--necessary if performing the precision/recall evaluation--, defined as when a path contains 
-		# one or more injected false edges. 
+		# keep track of True/False paths--necessary if performing the precision/recall evaluation--, defined as when a path contains
+		# one or more injected false edges.
 		searchDFS(source, action, edges_this_source, set(), down_set, searchNetwork, gene_states, t_states, search_depth, truePaths, falsePaths, False)
 		for edge in edges_this_source:
 			validated.add(edge)
-		TP += len(truePaths)	
-		FP += len(falsePaths)	
+		TP += len(truePaths)
+		FP += len(falsePaths)
 
 		# write causal networks to the output folder
 		if output:
@@ -212,7 +213,7 @@ def findConsistentPaths(up_signs, down_signs, searchNetwork, output_folder, outp
 			sys.stderr.write("Writing Single Causal Neighborhood to "+out_file+"\n")
 			writeEL(edges_this_source, source, down_set, out_file)
 
-	if output:	
+	if output:
 		out_file = output_folder+"/tiedie.cn.sif"
 		sys.stderr.write("Writing Full Causal Neighborhood to "+out_file+"\n")
 		# this is the union of all individual source networks
@@ -266,7 +267,7 @@ down_heats = None
 down_signs = None
 
 if opts.d_expr:
-	# find the set of transcriptional hubs with significantly altered activity, from the 
+	# find the set of transcriptional hubs with significantly altered activity, from the
 	# list of differential expression scores between groups (supplied)
 	down_heats = ActivityScores.findRegulators(network, opts.d_expr, min_hub=opts.min_hub)
 	# keep only the absolute values of the heats, and store the signs separately
@@ -274,10 +275,10 @@ if opts.d_expr:
 	for (g, h) in down_heats.items():
 		if h < 0:
 			down_signs[g] = "-"
-		else:	
+		else:
 			down_signs[g] = "+"
 		down_heats[g] = abs(h)
-	
+
 else:
 	# otherwise parse the pre-determined set of transcription factors
 	down_heats, down_signs = parseHeats(opts.down_heats, network_nodes)
@@ -314,7 +315,7 @@ else:
 		# for subsequent diffusion operations
 		diffuser = SciPYKernel(opts.network)
 
-# Check to make sure the node universe matches the 
+# Check to make sure the node universe matches the
 k_labels = diffuser.getLabels()
 if len(network_nodes) != len(k_labels) or len(network_nodes.intersection(k_labels)) != len(k_labels):
 	sys.stderr.write("Error: the universe of gene/node labels in the network file doesn't match the supplied kernel file!\n")
@@ -329,9 +330,9 @@ down_heats_diffused = diffuser.diffuse(down_heats, reverse=True)
 # and the heat scores for all linker genes
 subnet_soln, subnet_soln_nodes, alpha_score, linker_scores = extractSubnetwork(up_heats, down_heats, up_heats_diffused, down_heats_diffused, size_control, opts.alpha)
 
-# 
+#
 # Generate linker stats and output
-# 
+#
 out_degrees = getOutDegrees(subnet_soln)
 sys.stderr.write("Writing network node stats to "+output_folder+"/node.stats\n")
 out_file = output_folder+"/node.stats"
@@ -342,20 +343,20 @@ node_types = {}
 for node in subnet_soln_nodes:
 	out_deg = out_degrees[node]
 	linker_heat = linker_scores[node]
-	connecting = "0" 
+	connecting = "0"
 	if node in up_heats:
 		# source node = 1
-		node_types[node] = 1	
+		node_types[node] = 1
 	elif node in down_heats:
 		# target node = -1
-		node_types[node] = -1	
+		node_types[node] = -1
 
 	# assign a connecting state if this node is not in the source or target sets
 	if node not in up_heats:
 		if down_heats is not None and node not in down_heats:
 			connecting = "1"
 			node_types[node] = 0
-		
+
 	out.write("\t".join([node, connecting, str(linker_heat), str(out_deg)])+"\n")
 out.close()
 
@@ -369,7 +370,7 @@ writeNAfile(output_folder+"/heats.NA", linker_scores, "LinkerHeats")
 sys.stderr.write("Writing "+output_folder+"/tiedie.sif result \n")
 writeNetwork(subnet_soln, output_folder+"/tiedie.sif")
 
-# 
+#
 # Find logically consistent paths
 #
 TP, FP, validated = findConsistentPaths(up_signs, down_signs, subnet_soln, output_folder, True)
@@ -395,7 +396,7 @@ permutedHeats = perObj.permute(PERMUTE)
 # scores for each of the permutations
 permuted_scores = []
 for heats in permutedHeats:
-	# diffuse the permuted scores, then find the Relevance score for that permuted set 
+	# diffuse the permuted scores, then find the Relevance score for that permuted set
 	diffused_heats =  diffuser.diffuse(heats)
 	cutoff, score = findLinkerCutoff(heats, down_heats, diffused_heats, down_heats_diffused, size_control)
 	permuted_scores.append(score)
@@ -409,7 +410,7 @@ for val in sorted(permuted_scores, reverse=True):
 	sig_fh.write(str(val)+"\n")
 sig_fh.close()
 
-# just calculate the number of permuted sets that scored better than the real input set. 
+# just calculate the number of permuted sets that scored better than the real input set.
 no_gte = 0.0
 for val in sorted(permuted_scores, reverse=True):
 	if val >= alpha_score:
@@ -418,10 +419,9 @@ for val in sorted(permuted_scores, reverse=True):
 		break
 
 # Davison & Hinkley (1997): true empirical p-value is (r+1)/(n+1)
-# Compare Relevance scores for the permuted samples to compute and empirical p-value for the 
-# network. Write the scores to save for plotting. 
+# Compare Relevance scores for the permuted samples to compute and empirical p-value for the
+# network. Write the scores to save for plotting.
 sys.stderr.write("Writing Report to "+report_file+" :empirical p-value...\n")
 pval = (no_gte+1)/(PERMUTE+1)
 report_fh.write("P-value: "+str(pval)+" (with "+str(PERMUTE)+" random permutations)\n")
 report_fh.close()
-
