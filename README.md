@@ -16,7 +16,7 @@ Additional Contributors
 
 Srikanth Bezawada (TieDIE Cytoscape Plugin)
 Josh L. Espinoza (Quick kernel loading feature)
-
+Dana Silverbush (MATLAB kernel generation code updates to newer versions)
 
 Requirements
 --------

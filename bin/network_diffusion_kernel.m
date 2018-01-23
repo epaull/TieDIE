@@ -41,7 +41,27 @@ disp(sprintf('Calculating the heat diffusion kernel at time t=%f', t))
 K = expm(-t*L);
 disp(sprintf('Saving the heat diffusion kernel to file %OUTPUT%'))
 
-printmatrix(K, char(Nodes), char(Nodes), '%OUTPUT%', 'w');
+% old MATLAB 2012 version
+% printmatrix(K, char(Nodes), char(Nodes), '%OUTPUT%', 'w');
+
+% Open a file for writing
+fid = fopen('%OUTPUT%','w');
+
+% Write the first row: node names
+fprintf(fid,'Key')
+for ii = 1:size(Nodes,1)
+    fprintf(fid,'\t%s',Nodes{ii});
+end
+fprintf(fid,'\n');
+
+% Write the heat matrix
+for ii = 1:size(K,1)
+    fprintf(fid,'%s',Nodes{ii});
+    fprintf(fid,'\t%g',K(ii,:));
+    fprintf(fid,'\n');
+end
+
+fclose(fid);
 exit;
 
 % disp(sprintf('Saving the heat diffusion kernel to binary file kernel.mat'))
