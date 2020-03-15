@@ -5,9 +5,10 @@ import sys
 import math
 from array import array
 from scipy.sparse import coo_matrix
-from scipy.sparse.linalg import expm
+import tensorflow as tf
+import numpy as np
 
-class SciPYKernel:
+class TensKernel:
 
 	def __init__(self, network_file):
 		""" 
@@ -75,50 +76,18 @@ class SciPYKernel:
 		# that can be exponentiated efficiently
 		L = coo_matrix((data,(row, col)), shape=(num_nodes,num_nodes)).tocsc()
 		time_T = -0.1
-		self.laplacian = L
+		#self.laplacian = tf.Variable(L, tf.float32)
+		self.laplacian = np.array(L.todense())
 		self.index2node = index2node
 		# this is the matrix exponentiation calculation. 
 		# Uses the Pade approximiation for accurate approximation. Computationally expensive.
 		# O(n^2), n= # of features, in memory as well. 
-		self.kernel = expm(time_T*L)
-		print (type(self.kernel))
+		self.kernel = tf.linalg.expm(time_T*self.laplacian)
+		# FIXME: store as a sparse tensor
+		#self.kernel = self.kernel.eval(session=tf.compat.v1.Session())
 		self.labels = node_order
 	
 		#self.printLaplacian()
-
-	def printLaplacian(self):
-		"""
-		Debug function
-		"""
-		cx = self.laplacian.tocoo()
-		for i,j,v in zip(cx.row, cx.col, cx.data):
-			a = self.index2node[i]
-			b = self.index2node[j]
-			print ("\t".join([a,b,str(v)]))
-
-	def getKernelMatrix(self):
-		"""
-		Write the computer kernel to the supplied output file
-		"""
-		cx = self.kernel.tocoo()
-		edges = {}
-		for i,j,v in zip(cx.row, cx.col, cx.data):
-			a = self.index2node[i]
-			b = self.index2node[j]
-			edges[(a,b)] = str(v)
-
-		# index by column, then row
-		data = {}
-
-		for nodeA in sorted(self.labels):
-			data[nodeA] = {}
-		
-			# through columns	
-			for nodeB in sorted(self.labels):
-				if (nodeA, nodeB) in edges:
-					data[nodeA][nodeB] = float(edges[(nodeA, nodeB)])
-
-		return data
 
 	def writeKernel(self, output_file):
 		"""
@@ -198,6 +167,7 @@ class SciPYKernel:
 		"""
 		# Have to convert to ordered array format for the input vector
 		array = []
+		# labels are gene names
 		for label in self.labels:
 			# Input heats may not actually be in the network.
 			# Check and initialize to zero if not
@@ -206,14 +176,15 @@ class SciPYKernel:
 			else:
 				array.append(0)
 
+		# Have to convert to ordered array format for the input vector
 		# take the dot product
-		value = self.kernel*array
-
+		input_vec = tf.Variable(array, dtype='float32')
+		diffused = tf.tensordot(input_vec, self.kernel, axes = 1)
 		# Convert back to a hash and return diffused heats
 		return_vec = {}
 		idx = 0
 		for label in self.labels:
-			return_vec[label] = float(value[idx])
+			return_vec[label] = float(diffused[idx])
 			idx += 1
 
 		return return_vec

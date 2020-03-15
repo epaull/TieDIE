@@ -81,8 +81,9 @@ from master_reg import ActivityScores
 from consensus import *
 
 if opts.kernel is None:
-	sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
+	#sys.stderr.write("Warning: No kernel file supplied, will use SCIPY to compute the matrix exponential, t=0.1...\n")
 	from kernel_scipy import SciPYKernel
+	from kernel_tensorflow import TensKernel
 
 def getPVAL(setA, setB, network, diffuser, writeToFile=None):
     # TODO add docstring!
@@ -184,7 +185,8 @@ else:
 		sys.stderr.write("Using SCIPY to compute the matrix exponential, t=0.1...\n")
 		# No kernel supplied: use SCIPY to generate a kernel on the fly, and then use it
 		# for subsequent diffusion operations
-		diffuser = SciPYKernel(opts.network)
+		#diffuser = TensKernel(opts.network)
+		diffuser = TensKernel(opts.network)
 
 # normalize input heats to sum to 1
 for input in input_heats:
