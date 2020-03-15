@@ -93,7 +93,7 @@ class SciPYKernel:
 		for i,j,v in zip(cx.row, cx.col, cx.data):
 			a = self.index2node[i]
 			b = self.index2node[j]
-			print "\t".join([a,b,str(v)])
+			print ("\t".join([a,b,str(v)]))
 
 	def getKernelMatrix(self):
 		"""

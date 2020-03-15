@@ -5,15 +5,15 @@
 ###
 ###	Version: 
 ###
-###		Multiple (>= 3 inputs) Development Version
+###		Multiple (>= 3 inputs) Version
 ###
 ###	Authors: 
 ###
-###		Evan Paull (epaull@soe.ucsc.edu)
+###		Evan Paull (evanpaull@gmail.com)
 ###
 ###	Requirements:
 ###
-### 	python 2.7.X
+### 	python 3.7.X+
 ###		numpy 1.7+ (with pre-computed kernels)
 ###		scipy 0.12+ (for on-the-fly kernel generation)
 ###
@@ -190,7 +190,7 @@ else:
 for input in input_heats:
 	input_heats[input], signs = normalizeHeats(input_heats[input])
 
-print "Diffusing Heats..."
+print ("Diffusing Heats...")
 diffused_heats = {}
 for file in input_heats:
 	diffused_heats[file] = diffuser.diffuse(input_heats[file])
@@ -217,8 +217,8 @@ if opts.d_expr:
 
 # compute all pairwise distances, validate the input sets first
 if not opts.skip_null:
-	print "Computing pairwise p-values between sets"
-	print "\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"])
+	print ("Computing pairwise p-values between sets")
+	print ("\t".join(["Input A", "Input B", "Fitted Pval", "Empirical Pval"]))
 	for input1, input2 in combinations(input_heats, 2):
 
 		# print kl divergence
@@ -228,20 +228,20 @@ if not opts.skip_null:
 		output_file = output_folder+"/"+input1.replace('/', '.')+":"+input2.replace('/','.')+".dist.txt"
 		empirical_p, fitted_p = getPVAL(input_heats[input1],
             input_heats[input2], network, diffuser, output_file)
-		print "\t".join([input1, input2, str(fitted_p), str(empirical_p)])
+		print ("\t".join([input1, input2, str(fitted_p), str(empirical_p)]))
 
-	print "done"				
+	print ("done")
 
 # do a full TieDIE run: save heat values
 # write the cytoscape output file
-print "Running TieDIE with Standard Settings..."
+print ("Running TieDIE with Standard Settings...")
 std_options = copy.copy(opts)
 subnet_soln, subnet_soln_nodes, linker_heats, cutoff = \
         extractSubnetwork(network, input_heats, diffused_heats, opts.size, std_options)
 writeNAfile(output_folder+"/heats.NA", linker_heats, "LinkerHeats")
 writeHEATS(output_folder+"/heats.tab", linker_heats)
 writeNetwork(subnet_soln, output_folder+"/TieDIE.sif")
-print "done"
+print ("done")
 
 # Optional: Run TieDIE on the cohort data, over a range of size-options over a range
 # of subsampled inputs. Store a distribution of heats for each node and each 
@@ -262,7 +262,7 @@ rate = 0.85
 upstream_heats = input_heats[args[0]]
 
 # get statistics--nodes and edges
-print "Generating consensus TieDIE networks..."
+print ("Generating consensus TieDIE networks...")
 cNet = ConsensusNetwork(network, diffuser)
 cNet.generate(input_heats, samples, rate, options)
 edge_frequencies, node_frequencies, node_heat_distributions = cNet.getStats()
@@ -280,4 +280,4 @@ node_fh.close()
 for node in node_heat_distributions:
 	node_heats.write(node+"\t"+"\t".join([str(v) for v in node_heat_distributions[node]])+"\n")
 node_heats.close()
-print "done"
+print ("done")

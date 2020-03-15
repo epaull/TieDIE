@@ -66,7 +66,7 @@ class ConsensusNetwork:
 					# extract network at this size cutoff
 					subnet_soln, subnet_soln_nodes, linker_scores, cutoff = \
 						extractSubnetwork(self.base_network, subsampled_inputs, subsampled_diffused, network_size, tiedie_opts)
-				except Exception, err:
+				except Exception:
 					# just penalize with zero counts if we can't find a subnetwork at all
 					continue
 
