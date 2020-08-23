@@ -230,7 +230,7 @@ def searchDFS(source, action, discovered, linker_nodes, target_set, net, gene_st
 		action_this_target = None
 		if i_type == 1:
 			action_this_target = action
-		elif i_type == 2:
+		elif i_type == -1:
 			action_this_target = -action
 
 		# for transcriptional states: the expression activity is what we want to measure
