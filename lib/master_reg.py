@@ -85,13 +85,11 @@ class ActivityScores:
 		scores, signs = parseHeats(de_file)
 		mrObj = ActivityScores(network, scores, min_hub=min_hub)
 		# perform 1000 random permutations of the data to get significance scores for each
-		result = mrObj.scoreCandidates(nperms)
+		result = mrObj.scoreCandidates(nperms = nperms)
 		tfs_heats = {}
 		for (tf, result) in sorted(result.items(), key=lambda t: t[1][0]):
 			print(result)
-			# filter on p-value
-			if result[1] > 0.05:
-				continue
+			# filter on p-value is nonsense
 			tfs_heats[tf] = float(result[0])
 
 		if len(tfs_heats) == 0:
