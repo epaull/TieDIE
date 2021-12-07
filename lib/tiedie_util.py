@@ -208,6 +208,8 @@ def searchDFS(source, action, discovered, linker_nodes, target_set, net, gene_st
 		None
 	'''
 
+	# No need to search. Omit this function will not affect anything. 
+	return
 	if depth == 0:
 		return
 
